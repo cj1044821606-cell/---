@@ -371,6 +371,56 @@
     "name": "源文件(L)",
     "id": "fld05lnLJQ",
     "type": "attachment"
+   },
+   {
+    "name": "命名模式",
+    "id": "fldK1XDsAi",
+    "type": "select"
+   },
+   {
+    "name": "用户提供·物料大类",
+    "id": "fldcJhOHvE",
+    "type": "select"
+   },
+   {
+    "name": "用户提供·产品型号",
+    "id": "fldMuvqVzw",
+    "type": "text"
+   },
+   {
+    "name": "用户提供·物料类型",
+    "id": "fldbZvR1ZL",
+    "type": "select"
+   },
+   {
+    "name": "用户提供·语言",
+    "id": "fldx4Vhnd5",
+    "type": "select"
+   },
+   {
+    "name": "用户提供·主区域",
+    "id": "fldWuVeCCi",
+    "type": "text"
+   },
+   {
+    "name": "用户提供·版本号",
+    "id": "fld7kGCVyi",
+    "type": "text"
+   },
+   {
+    "name": "用户提供·品牌或展会名",
+    "id": "fldxuDA1fR",
+    "type": "text"
+   },
+   {
+    "name": "用户提供·展会年份",
+    "id": "fldUcIlKDO",
+    "type": "number"
+   },
+   {
+    "name": "用户提供·命名预览",
+    "id": "fld28r7jaG",
+    "type": "text"
    }
   ]
  },
@@ -621,6 +671,11 @@
     "name": "是否已通知",
     "id": "fld1S1ZkGf",
     "type": "checkbox"
+   },
+   {
+    "name": "站内已读时间",
+    "id": "fld0Dxg0Wu",
+    "type": "datetime"
    },
    {
     "name": "版本",

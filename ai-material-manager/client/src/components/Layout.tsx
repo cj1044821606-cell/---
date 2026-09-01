@@ -14,7 +14,11 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@client/src/auth/auth-provider";
 import { logger } from "@client/src/lib/logger";
-import { Avatar, AvatarFallback, AvatarImage } from "@client/src/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@client/src/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,9 +37,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@client/src/components/ui/alert-dialog";
-import { Image } from '@client/src/components/ui/image';
+import { Image } from "@client/src/components/ui/image";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import { useIdentity } from "@client/src/hooks/use-identity";
+import { useInbox } from "@client/src/inbox/inbox-provider";
 import { useSystemSettings } from "@client/src/hooks/use-system-settings";
 import GroupGuideDialog, {
   hasJoinedGroup,
@@ -54,14 +59,15 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/more", labelKey: "nav.more", icon: MoreHorizontal },
 ];
 
-const Layout: React.FC<{ hasInboxDot?: boolean }> = ({
-  hasInboxDot = false,
-}) => {
+const Layout: React.FC = () => {
   const { user: userInfo, logout } = useAuth();
   const appName = "AI 物料版本管理";
   const appLogo: string | null = null;
   const { language, t, setLanguage } = useI18n();
   const { identity } = useIdentity();
+  const { items: inboxItems } = useInbox();
+  const hasInboxDot =
+    identity?.defaultLanding !== "inbox" && (inboxItems?.length ?? 0) > 0;
   const settings = useSystemSettings();
   const [logoutOpen, setLogoutOpen] = useState<boolean>(false);
   const [guideOpen, setGuideOpen] = useState<boolean>(false);
@@ -86,7 +92,10 @@ const Layout: React.FC<{ hasInboxDot?: boolean }> = ({
       <DropdownMenuTrigger className="outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded-md">
         <Avatar className="size-8">
           {userInfo.avatarUrl ? (
-            <AvatarImage src={userInfo.avatarUrl} alt={userInfo.name ?? "用户"} />
+            <AvatarImage
+              src={userInfo.avatarUrl}
+              alt={userInfo.name ?? "用户"}
+            />
           ) : null}
           <AvatarFallback>
             <User className="size-4 text-muted-foreground" />
@@ -94,9 +103,7 @@ const Layout: React.FC<{ hasInboxDot?: boolean }> = ({
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel>
-          {userInfo.name ?? "游客"}
-        </DropdownMenuLabel>
+        <DropdownMenuLabel>{userInfo.name ?? "游客"}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"
@@ -124,7 +131,9 @@ const Layout: React.FC<{ hasInboxDot?: boolean }> = ({
               <Package className="size-4" />
             </div>
           )}
-          <span className="text-sm font-semibold">{appName ?? "AI 物料版本管理"}</span>
+          <span className="text-sm font-semibold">
+            {appName ?? "AI 物料版本管理"}
+          </span>
         </div>
         <nav className="flex items-center gap-1">
           {NAV_ITEMS.map((item: NavItem) => (
@@ -155,15 +164,23 @@ const Layout: React.FC<{ hasInboxDot?: boolean }> = ({
           <DropdownMenu>
             <DropdownMenuTrigger className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/40">
               <Languages className="size-4" />
-              <span className="font-medium">{language === "zh" ? "中文" : "EN"}</span>
+              <span className="font-medium">
+                {language === "zh" ? "中文" : "EN"}
+              </span>
               <ChevronDown className="size-3.5 opacity-60" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-36">
               <DropdownMenuItem onClick={() => setLanguage("zh")}>
-                中文{language === "zh" ? <Check className="ml-auto size-4" /> : null}
+                中文
+                {language === "zh" ? (
+                  <Check className="ml-auto size-4" />
+                ) : null}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setLanguage("en")}>
-                English{language === "en" ? <Check className="ml-auto size-4" /> : null}
+                English
+                {language === "en" ? (
+                  <Check className="ml-auto size-4" />
+                ) : null}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -178,9 +195,9 @@ const Layout: React.FC<{ hasInboxDot?: boolean }> = ({
       ) : null}
 
       <main className="pb-20 md:pb-8">
-          <div className="mx-auto w-full max-w-[1280px] px-4 py-5 md:px-8 md:py-7">
-            <Outlet />
-          </div>
+        <div className="mx-auto w-full max-w-[1280px] px-4 py-5 md:px-8 md:py-7">
+          <Outlet />
+        </div>
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-card md:hidden">

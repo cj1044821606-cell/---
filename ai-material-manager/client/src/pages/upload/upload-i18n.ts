@@ -20,7 +20,10 @@ export const UPLOAD_I18N: Record<string, UploadI18nEntry> = {
     zh: "要入库的成品文件（导出件）",
     en: "The finished file to register",
   },
-  "upload.field.fileL": { zh: "源文件 L（选填）", en: "Source file L (optional)" },
+  "upload.field.fileL": {
+    zh: "源文件 L（选填）",
+    en: "Source file L (optional)",
+  },
   "upload.field.fileL.hint": {
     zh: "可编辑源文件，入库后保留给设计团队",
     en: "Editable source, kept for the design team",
@@ -40,10 +43,59 @@ export const UPLOAD_I18N: Record<string, UploadI18nEntry> = {
     zh: "文件上传失败，请重试",
     en: "File upload failed. Please retry",
   },
-  "upload.field.originalFileName": { zh: "原始文件名", en: "Original file name" },
+  "upload.field.originalFileName": {
+    zh: "原始文件名",
+    en: "Original file name",
+  },
   "upload.field.originalFileName.placeholder": {
     zh: "选文件后自动填入，可修改",
     en: "Auto-filled from the file, editable",
+  },
+  "upload.naming.title": { zh: "命名方式", en: "Naming method" },
+  "upload.naming.hint": {
+    zh: "AI 可以自动识别，你也可以先提供结构化信息供 AI 校验",
+    en: "Let AI identify it, or provide structured details for AI validation",
+  },
+  "upload.naming.mode.ai": { zh: "AI 自动识别", en: "AI recognition" },
+  "upload.naming.mode.guided": {
+    zh: "我提供命名信息",
+    en: "Provide naming details",
+  },
+  "upload.naming.incomplete": {
+    zh: "请补全命名信息后再提交",
+    en: "Complete the naming details before submitting",
+  },
+  "upload.naming.category.product": { zh: "产品物料", en: "Product" },
+  "upload.naming.category.brand": { zh: "品牌物料", en: "Brand" },
+  "upload.naming.category.expo": { zh: "展会物料", en: "Event" },
+  "upload.naming.productModel": { zh: "产品型号", en: "Product model" },
+  "upload.naming.materialType": { zh: "物料类型", en: "Material type" },
+  "upload.naming.select": { zh: "请选择", en: "Select" },
+  "upload.naming.language": { zh: "语言", en: "Language" },
+  "upload.naming.expoName": { zh: "展会简称", en: "Event name" },
+  "upload.naming.brandName": { zh: "品牌名", en: "Brand name" },
+  "upload.naming.eventYear": { zh: "展会年份", en: "Event year" },
+  "upload.naming.region": { zh: "主区域（选填）", en: "Region (optional)" },
+  "upload.naming.region.placeholder": {
+    zh: "如 PK；全球可留空",
+    en: "For example PK; leave blank for global",
+  },
+  "upload.naming.version": { zh: "版本号", en: "Version" },
+  "upload.naming.previewTitle": {
+    zh: "命名预览 · 待 AI 校验",
+    en: "Naming preview · Pending AI validation",
+  },
+  "upload.naming.previewReady": {
+    zh: "信息已完整，仍需 AI 校验与查重",
+    en: "Details complete; AI validation and duplicate check still required",
+  },
+  "upload.naming.previewMissing": {
+    zh: "还需补充",
+    en: "Missing fields:",
+  },
+  "upload.naming.guidedNotice": {
+    zh: "这是根据你提供的信息生成的预览。TClaw 仍会校验内容、规则和重名，再生成最终标准命名。",
+    en: "This preview uses your input. TClaw still validates the content, rules and duplicates before producing the final name.",
   },
   "upload.field.brief": { zh: "设计 Brief", en: "Design brief" },
   "upload.field.brief.placeholder": {
@@ -55,12 +107,18 @@ export const UPLOAD_I18N: Record<string, UploadI18nEntry> = {
     zh: "物料（产品/品牌）/型号/区域/语言/用途/颜色配置（RGB/CMYK）",
     en: "Material (product/brand) / model / region / language / usage / color (RGB/CMYK)",
   },
-  "upload.field.versionReplace": { zh: "是否为版本替换", en: "Replacing an old version?" },
+  "upload.field.versionReplace": {
+    zh: "是否为版本替换",
+    en: "Replacing an old version?",
+  },
   "upload.field.versionReplace.hint": {
     zh: "勾选后需关联被替换的旧版本，入库后旧版本会被标记替代",
     en: "Link the old version being replaced",
   },
-  "upload.field.oldVersion": { zh: "被替换的旧版本", en: "Old version to replace" },
+  "upload.field.oldVersion": {
+    zh: "被替换的旧版本",
+    en: "Old version to replace",
+  },
   "upload.field.oldVersion.placeholder": {
     zh: "按物料名或版本号搜索",
     en: "Search by name or version no.",
@@ -72,7 +130,7 @@ export const UPLOAD_I18N: Record<string, UploadI18nEntry> = {
   "upload.field.planner": { zh: "策划人及审核人", en: "Planner & auditor" },
   "upload.field.planner.placeholder": {
     zh: "选择需求方策划人员",
-    en: "Select planner(s)",
+    en: "Select planner",
   },
   "upload.field.designer": { zh: "设计师", en: "Designer" },
   "upload.field.designer.placeholder": {
@@ -110,7 +168,10 @@ export const UPLOAD_I18N: Record<string, UploadI18nEntry> = {
     en: "The final standard name is generated only after AI reads the material.",
   },
   "upload.review.ready": { zh: "必填项已完整", en: "Required fields complete" },
-  "upload.review.remaining": { zh: "还差必填项", en: "Required items remaining:" },
+  "upload.review.remaining": {
+    zh: "还差必填项",
+    en: "Required items remaining:",
+  },
   "upload.submit": { zh: "提交给 AI 处理", en: "Submit to AI pool" },
   "upload.submit.uploadingFile": {
     zh: "请等待文件上传完成",
@@ -124,8 +185,14 @@ export const UPLOAD_I18N: Record<string, UploadI18nEntry> = {
     zh: "请选择被替换的旧版本",
     en: "Select the old version to replace",
   },
-  "upload.submit.failed": { zh: "提交失败，请重试", en: "Submit failed. Please retry" },
-  "upload.done.title": { zh: "已提交，AI 开始处理", en: "Submitted. AI is on it" },
+  "upload.submit.failed": {
+    zh: "提交失败，请重试",
+    en: "Submit failed. Please retry",
+  },
+  "upload.done.title": {
+    zh: "已提交，AI 开始处理",
+    en: "Submitted. AI is on it",
+  },
   "upload.done.desc": {
     zh: "记录已写入 AI 待处理池，识别完成后 AI 会找你确认。编号：",
     en: "Record written to the AI pool. AI will ask you to confirm. ID: ",

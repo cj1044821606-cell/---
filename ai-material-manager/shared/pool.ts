@@ -51,11 +51,14 @@ export interface PoolUploadRequest {
   previewFileS?: string[];
   designBrief?: string;
   note?: string;
-  plannerAuditorIds?: string[];
+  /** 策划及审核人：飞书 Base 单人字段，使用 open_id */
+  plannerAuditorId?: string;
   designerId?: string;
   isVersionReplace?: boolean;
   associateOldVersionId?: string;
   isLargeFile?: boolean;
+  namingMode?: import("./naming").NamingMode;
+  namingInput?: import("./naming").GuidedNamingInput;
 }
 
 export interface PoolUploadResponse {

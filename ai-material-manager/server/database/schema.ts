@@ -315,6 +315,8 @@ export const downloadReceiveRecord = pgTable("download_receive_record", {
   // Synced field: auto-synced, do not modify or delete
   isNotified: boolean("is_notified"),
   // Synced field: auto-synced, do not modify or delete
+  inAppReadAt: customTimestamptz("in_app_read_at", { precision: 6 }),
+  // Synced field: auto-synced, do not modify or delete
   downloadTime: customTimestamptz("download_time", { precision: 6 }),
   /**
    * 物料
@@ -493,6 +495,26 @@ export const aiPendingPool = pgTable("ai_pending_pool", {
   isSentConfirm: boolean("is_sent_confirm"),
   // Synced field: auto-synced, do not modify or delete
   autoPublishAfterConfirm: boolean("auto_publish_after_confirm"),
+  // Synced field: auto-synced, do not modify or delete
+  namingMode: text("naming_mode"),
+  // Synced field: auto-synced, do not modify or delete
+  guidedCategory: text("guided_category"),
+  // Synced field: auto-synced, do not modify or delete
+  guidedProductModel: text("guided_product_model"),
+  // Synced field: auto-synced, do not modify or delete
+  guidedMaterialType: text("guided_material_type"),
+  // Synced field: auto-synced, do not modify or delete
+  guidedLanguage: text("guided_language"),
+  // Synced field: auto-synced, do not modify or delete
+  guidedRegion: text("guided_region"),
+  // Synced field: auto-synced, do not modify or delete
+  guidedVersion: text("guided_version"),
+  // Synced field: auto-synced, do not modify or delete
+  guidedName: text("guided_name"),
+  // Synced field: auto-synced, do not modify or delete
+  guidedEventYear: bigint("guided_event_year", { mode: 'number' }),
+  // Synced field: auto-synced, do not modify or delete
+  guidedPreview: text("guided_preview"),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 6 }).notNull().default(sql`now()`),
   // System field: Creator (auto-filled, do not modify)

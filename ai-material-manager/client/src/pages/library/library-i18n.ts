@@ -27,14 +27,25 @@ export const LIBRARY_I18N: Record<string, LibraryI18nEntry> = {
     zh: "仅可外发",
     en: "Client-shareable only",
   },
+  "library.filter.externalOnly.tooltip": {
+    zh: "只显示允许分享给客户或渠道的已发布物料",
+    en: "Show only published materials approved for client or channel sharing",
+  },
   "library.viewGlobal.label": { zh: "查看全球", en: "View global" },
+  "library.viewGlobal.tooltip": {
+    zh: "显示其他区域的已发布物料，需要相应权限",
+    en: "Show published materials from other regions; permission required",
+  },
   "library.viewGlobal.banner": {
     zh: "正在查看全球物料：已跳过市场过滤，仍仅展示已发布内容",
     en: "Viewing global materials: market filter skipped, published items only",
   },
   "library.tab.materials": { zh: "按物料", en: "By material" },
   "library.tab.kits": { zh: "按资料包", en: "By kit" },
-  "library.empty.title": { zh: "没有符合条件的物料", en: "No matching materials" },
+  "library.empty.title": {
+    zh: "没有符合条件的物料",
+    en: "No matching materials",
+  },
   "library.empty.description": {
     zh: "换个关键词或筛选条件试试，也可以提一个新的物料需求",
     en: "Try different keywords or filters, or request a new material",

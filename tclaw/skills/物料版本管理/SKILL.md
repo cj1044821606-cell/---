@@ -50,6 +50,9 @@ description: TClaw 作为「AI 物料版本经理」的【唯一】统一作业�
 ## 阶段二 · 识别与命名
 1. **抢锁**：`record-update` 置 `处理锁(fldHrLogC3)=是`、`处理状态(fld2LqhmT5)=处理中`。（已被锁则跳过，防并发。）
 2. **取导出件 M**：下载待处理池 `上传文件(fldcOKGnHe)`（PDF/PNG/JPG/MP4，AI 据此识别）。**源文件 L 读不了，只存档，别拿来识别。** 只有 L 没有 M → 走阶段三让上传者补一份导出件。
+   - 先读 `命名模式(fldK1XDsAi)`。`AI 自动识别` 或空值时按原流程识别；`我提供命名信息` 时，读取 `用户提供·物料大类/产品型号/物料类型/语言/主区域/版本号/品牌或展会名/展会年份` 作为**强结构化线索**。
+   - 用户提供的字段和 `用户提供·命名预览(fld28r7jaG)` 都不是最终事实。必须对照导出件 M、用户说明和当前命名规则逐项校验；冲突或缺项只集中追问一次，不能静默采信，也不能把“预览”说成“识别成功”。
+   - 校验通过后重新生成命名，并用 `record-search` 查主表 `标准命名` 是否冲突；仅在真实冲突时追加 `-NN`。最终结果仍写入 `AI识别结果`，之后再改附件名和入库。
 3. **先判物料大类**：产品物料 / 品牌物料 / 展会物料。再按 [命名与编码规则](../../knowledge/命名与编码规则.md) 识别各段：
    - **产品物料** → `产品型号-物料类型-语言-(区域)-版本号`，例 `IPV-1K612U-Datasheet-En-(PK)-V1.0`。
      - 产品型号：**照搬真实型号串**（如 `IPV-1K612U`，含连字符，不解码）。
@@ -143,7 +146,7 @@ description: TClaw 作为「AI 物料版本经理」的【唯一】统一作业�
 - 传错了自行修正（删错的、重传对的、回读再汇报），别停在中间等问。
 
 ## 关键字段速查（写前仍以 field-list 为准）
-- 池 `tblcAERSb9EKbx5W`：处理状态 fld2LqhmT5 · 处理锁 fldHrLogC3 · 上传文件 fldcOKGnHe · 源文件(L) fld05lnLJQ · 预览文件（S） fldTZF6vCx · 策划人及审核人 flddEKvsOe · 设计师 fldOR3yRgq · AI识别结果 fldPYFZ0De · 缺失信息 fldhhwUMRh · AI追问对象 fldDEmbGoY · 确认结果 fldUUQkghW · **确认后自动发布 fld2avzfPJ** · **是否为版本替换 fldxQwwS2T** · **关联主表 fldDqDp3by**(原关联旧物料) · 关联旧版本 fldRHigFMa
+- 池 `tblcAERSb9EKbx5W`：处理状态 fld2LqhmT5 · 处理锁 fldHrLogC3 · 上传文件 fldcOKGnHe · 源文件(L) fld05lnLJQ · 预览文件（S） fldTZF6vCx · 策划人及审核人 flddEKvsOe(单人) · 设计师 fldOR3yRgq · AI识别结果 fldPYFZ0De · 缺失信息 fldhhwUMRh · AI追问对象 fldDEmbGoY · 确认结果 fldUUQkghW · **确认后自动发布 fld2avzfPJ** · **是否为版本替换 fldxQwwS2T** · **关联主表 fldDqDp3by**(原关联旧物料) · 关联旧版本 fldRHigFMa · **命名模式 fldK1XDsAi** · 用户提供·物料大类 fldcJhOHvE · 产品型号 fldMuvqVzw · 物料类型 fldbZvR1ZL · 语言 fldx4Vhnd5 · 主区域 fldWuVeCCi · 版本号 fld7kGCVyi · 品牌或展会名 fldxuDA1fR · 展会年份 fldUcIlKDO · 命名预览 fld28r7jaG
 - 主表 `tbl3C5fTH08IyLkA`：物料名称 fld6wmGrLa · 标准命名 fldMZOUZZN · 内部物料ID fldtdmsui4(自动·每行) · **物料ID fldP1JPoxY(稳定族ID·跨版本同)** · **替代的旧版本 fldh1amw2f(自关联→旧版)** · 产品型号 fldCVoZ8zt · 物料类型 fldSoGSdj8 · 产品线 fldDLt4i08 · 适用区域 fldVzP1KU3(多选) · **关联处理池 fldHcBBjcX**(原相关待处理) · 策划及审核人 fldtuIfpCY(7.5/08同步) · 设计师 fldIYsEr3z · 订阅者 fldnanZVSQ · 订阅按钮 fldd3VeGqW(14) · 下载领用 fldobdCAaK(12) · 手动同步信息 fldBw3N2ex(09按钮) · 云盘链接M fldYyB8ceL · 云盘链接L fldpWbSOzy · 云盘链接S fld0yHkFG5 · 是否大文件 fldBwfoqhh
 - 版本表 `tbl3S60VSKy1dGbj`：关联物料 fldOpjiRlv · 版本号 fldz2xwIjN · 版本类型 fld4K9D8Ml · 是否当前有效 fldhz3ZppP · 审核状态 fldtIxRanX · 修改人 fldYHQIo7d · 本版附件 fldFQr9Rbw
 

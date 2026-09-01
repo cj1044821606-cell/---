@@ -33,3 +33,7 @@ export interface InboxCard {
 export interface InboxResponse {
   items: InboxCard[];
 }
+
+export interface InboxAcknowledgeResponse {
+  success: boolean;
+}

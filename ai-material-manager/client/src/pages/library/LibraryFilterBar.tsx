@@ -35,7 +35,7 @@ export interface LibraryFilterBarProps {
 interface SelectFilterProps {
   value: string;
   onValueChange: (value: string) => void;
-  placeholder: string;
+  label: string;
   allLabel: string;
   allValue: string;
   options: string[];
@@ -44,14 +44,21 @@ interface SelectFilterProps {
 const SelectFilter: React.FC<SelectFilterProps> = ({
   value,
   onValueChange,
-  placeholder,
+  label,
   allLabel,
   allValue,
   options,
 }: SelectFilterProps) => (
   <Select value={value} onValueChange={onValueChange}>
-    <SelectTrigger className="h-10 rounded-lg w-full lg:w-[150px]">
-      <SelectValue placeholder={placeholder} />
+    <SelectTrigger
+      className="h-10 w-full min-w-0 rounded-lg lg:w-[190px]"
+      aria-label={label}
+    >
+      <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+        {label}
+      </span>
+      <span aria-hidden="true" className="h-4 w-px shrink-0 bg-border" />
+      <SelectValue placeholder={allLabel} />
     </SelectTrigger>
     <SelectContent>
       <SelectItem value={allValue}>{allLabel}</SelectItem>
@@ -100,7 +107,7 @@ const LibraryFilterBar: React.FC<LibraryFilterBarProps> = ({
       <SelectFilter
         value={materialType}
         onValueChange={onMaterialTypeChange}
-        placeholder={pt("library.filter.materialType")}
+        label={pt("library.filter.materialType")}
         allLabel={pt("library.filter.all")}
         allValue={allValue}
         options={typeOptions}
@@ -108,7 +115,7 @@ const LibraryFilterBar: React.FC<LibraryFilterBarProps> = ({
       <SelectFilter
         value={region}
         onValueChange={onRegionChange}
-        placeholder={pt("library.filter.region")}
+        label={pt("library.filter.region")}
         allLabel={pt("library.filter.all")}
         allValue={allValue}
         options={regionOptions}
@@ -116,7 +123,7 @@ const LibraryFilterBar: React.FC<LibraryFilterBarProps> = ({
       <SelectFilter
         value={productModel}
         onValueChange={onProductModelChange}
-        placeholder={pt("library.filter.productModel")}
+        label={pt("library.filter.productModel")}
         allLabel={pt("library.filter.all")}
         allValue={allValue}
         options={modelOptions}
@@ -126,6 +133,7 @@ const LibraryFilterBar: React.FC<LibraryFilterBarProps> = ({
         active={externalOnly}
         onClick={() => onExternalOnlyChange(!externalOnly)}
         icon={Send}
+        tooltip={pt("library.filter.externalOnly.tooltip")}
       >
         {pt("library.filter.externalOnly")}
       </FilterChip>
@@ -134,6 +142,7 @@ const LibraryFilterBar: React.FC<LibraryFilterBarProps> = ({
           active={viewGlobal}
           onClick={() => onViewGlobalChange(!viewGlobal)}
           icon={Globe2}
+          tooltip={pt("library.viewGlobal.tooltip")}
         >
           {pt("library.viewGlobal.label")}
         </FilterChip>
