@@ -1,0 +1,263 @@
+{
+  "id": "feishu_bitable_ai_pending_pool_operation_3",
+  "pluginKey": "@official-plugins/feishu-bitable",
+  "pluginVersion": "1.0.22",
+  "name": "飞书多维表格「AI待处理池」读写实例 v3",
+  "description": "服务端写入/更新/查询 AI待处理池记录，修正「设计Brief」字段类型为Url超链接，解决写入死锁问题，支持batchAddRecords、batchUpdateRecords、getRecord、searchRecords操作",
+  "icon": "",
+  "paramsSchema": {},
+  "formValue": {
+    "appToken": "DPCCbp65waiDtys1JfucMKm8nTe",
+    "tableID": "tblcAERSb9EKbx5W",
+    "fields": [
+      {
+        "readable": true,
+        "writeable": true,
+        "bizType": "Text",
+        "id": "fld1",
+        "name": "原始文件名",
+        "type": 1
+      },
+      {
+        "writeable": true,
+        "bizType": "Attachment",
+        "id": "fld2",
+        "name": "上传文件（M）",
+        "type": 17,
+        "readable": true
+      },
+      {
+        "writeable": true,
+        "bizType": "Url",
+        "id": "fld3",
+        "name": "设计Brief",
+        "type": 15,
+        "readable": true
+      },
+      {
+        "type": 7,
+        "readable": true,
+        "writeable": true,
+        "enumValues": [
+          "表单",
+          "IM直发",
+          "区域二创",
+          "历史导入",
+          "前端上传"
+        ],
+        "bizType": "SingleSelect",
+        "id": "fld4",
+        "name": "上传方式"
+      },
+      {
+        "id": "fld5",
+        "name": "上传者",
+        "type": 13,
+        "readable": true,
+        "writeable": true,
+        "bizType": "User"
+      },
+      {
+        "id": "fld6",
+        "name": "用户填写说明",
+        "type": 1,
+        "readable": true,
+        "writeable": true,
+        "bizType": "Text"
+      },
+      {
+        "id": "fld7",
+        "name": "处理锁",
+        "type": 7,
+        "readable": true,
+        "writeable": true,
+        "bizType": "Checkbox"
+      },
+      {
+        "bizType": "CreatedTime",
+        "id": "fld8",
+        "name": "上传时间",
+        "type": 5,
+        "readable": true,
+        "writeable": false
+      },
+      {
+        "type": 17,
+        "readable": true,
+        "writeable": true,
+        "bizType": "Attachment",
+        "id": "fld9",
+        "name": "源文件(L)"
+      },
+      {
+        "bizType": "Attachment",
+        "id": "fld10",
+        "name": "预览文件（S）",
+        "type": 17,
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "type": 7,
+        "readable": true,
+        "writeable": true,
+        "enumValues": [
+          "待识别",
+          "处理中",
+          "待补充",
+          "待确认",
+          "已入库",
+          "已退回",
+          "失败"
+        ],
+        "bizType": "SingleSelect",
+        "id": "fld11",
+        "name": "处理状态"
+      },
+      {
+        "bizType": "SingleSelect",
+        "id": "fld12",
+        "name": "确认结果",
+        "type": 7,
+        "readable": true,
+        "writeable": true,
+        "enumValues": [
+          "待确认",
+          "通过",
+          "退回"
+        ]
+      },
+      {
+        "bizType": "Text",
+        "id": "fld13",
+        "name": "AI识别结果",
+        "type": 1,
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "bizType": "Text",
+        "id": "fld14",
+        "name": "缺失信息",
+        "type": 1,
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "bizType": "Text",
+        "id": "fld15",
+        "name": "处理日志",
+        "type": 1,
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "readable": true,
+        "writeable": true,
+        "bizType": "Number",
+        "id": "fld16",
+        "name": "重试次数",
+        "type": 2
+      },
+      {
+        "name": "策划人及审核人",
+        "type": 13,
+        "readable": true,
+        "writeable": true,
+        "bizType": "User",
+        "id": "fld17"
+      },
+      {
+        "id": "fld18",
+        "name": "设计师",
+        "type": 13,
+        "readable": true,
+        "writeable": true,
+        "bizType": "User"
+      },
+      {
+        "bizType": "Checkbox",
+        "id": "fld19",
+        "name": "是否为版本替换",
+        "type": 7,
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "bizType": "Text",
+        "id": "fld20",
+        "name": "云盘链接M",
+        "type": 1,
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "type": 1,
+        "readable": true,
+        "writeable": true,
+        "bizType": "Text",
+        "id": "fld21",
+        "name": "云盘链接L"
+      },
+      {
+        "id": "fld22",
+        "name": "云盘链接S",
+        "type": 1,
+        "readable": true,
+        "writeable": true,
+        "bizType": "Text"
+      },
+      {
+        "id": "fld23",
+        "name": "是否大文件",
+        "type": 7,
+        "readable": true,
+        "writeable": true,
+        "bizType": "Checkbox"
+      },
+      {
+        "type": 1,
+        "readable": true,
+        "writeable": true,
+        "bizType": "Text",
+        "id": "fld24",
+        "name": "用户补充回复"
+      },
+      {
+        "bizType": "Checkbox",
+        "id": "fld25",
+        "name": "确认后自动发布",
+        "type": 7,
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "bizType": "SingleLink",
+        "id": "fld26",
+        "name": "关联旧版本",
+        "type": 18,
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "readable": true,
+        "writeable": true,
+        "bizType": "SingleLink",
+        "id": "fld27",
+        "name": "关联主表",
+        "type": 18
+      },
+      {
+        "bizType": "User",
+        "id": "fld28",
+        "name": "AI追问对象",
+        "type": 13,
+        "readable": true,
+        "writeable": true
+      }
+    ]
+  },
+  "createdAt": 1786730527077,
+  "updatedAt": 1786730527077,
+  "createdBy": 7399315438066270212
+}

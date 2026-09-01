@@ -1,0 +1,17 @@
+{
+  "id": "feishu_bitable_material_receive_record_operation_1",
+  "pluginKey": "@official-plugins/feishu-bitable",
+  "pluginVersion": "1.0.22",
+  "name": "飞书多维表格「领取下载记录表」读写实例",
+  "description": "用于应用服务端写入物料领取记录，支持记录的查询、新增、更新、删除全量操作能力。",
+  "icon": "",
+  "paramsSchema": {},
+  "formValue": {
+    "fields": [],
+    "appToken": "DPCCbp65waiDtys1JfucMKm8nTe",
+    "tableID": "tblo8mHKxrY8nwIx"
+  },
+  "createdAt": 1786704812701,
+  "updatedAt": 1786704812701,
+  "createdBy": 7399315438066270212
+}

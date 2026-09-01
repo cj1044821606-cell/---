@@ -1,0 +1,33 @@
+services:
+  app:
+    build:
+      context: .
+    image: ai-material-manager:latest
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      UPLOAD_DIR: /data/uploads
+      PORT: 3000
+      SERVER_HOST: 0.0.0.0
+    volumes:
+      - upload-data:/data/uploads
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    user: "0:0"
+    read_only: true
+    command: tunnel --config /etc/cloudflared/config.yml --no-autoupdate run
+    volumes:
+      - ./deploy/cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ./deploy/cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  upload-data:

@@ -1,0 +1,74 @@
+{
+  "id": "feishu_bitable_system_config_table_read_1",
+  "pluginKey": "@official-plugins/feishu-bitable",
+  "pluginVersion": "1.0.22",
+  "name": "飞书多维表格「系统配置表」读取实例",
+  "description": "读取飞书多维表格中「系统配置表」的配置数据，支持获取各类系统参数配置信息",
+  "icon": "",
+  "paramsSchema": {},
+  "formValue": {
+    "appToken": "DPCCbp65waiDtys1JfucMKm8nTe",
+    "tableID": "tblyZv7k70fD64un",
+    "fields": [
+      {
+        "writeable": false,
+        "id": "fldaXCl9qH",
+        "name": "配置键",
+        "type": 1,
+        "bizType": "Text",
+        "readable": true
+      },
+      {
+        "type": 1,
+        "bizType": "Text",
+        "readable": true,
+        "writeable": false,
+        "id": "fld3zGSpKc",
+        "name": "配置名称"
+      },
+      {
+        "id": "fldDoeVMKY",
+        "name": "文本值",
+        "type": 1,
+        "bizType": "Text",
+        "readable": true,
+        "writeable": false
+      },
+      {
+        "id": "fldn2WQIlA",
+        "name": "图片",
+        "type": 17,
+        "bizType": "Attachment",
+        "readable": true,
+        "writeable": false
+      },
+      {
+        "readable": true,
+        "writeable": false,
+        "id": "fldy98Zv45",
+        "name": "有效期",
+        "type": 5,
+        "bizType": "DateTime"
+      },
+      {
+        "writeable": false,
+        "id": "fldv0Te3ex",
+        "name": "是否启用",
+        "type": 7,
+        "bizType": "Checkbox",
+        "readable": true
+      },
+      {
+        "id": "fldUKODHU8",
+        "name": "备注",
+        "type": 1,
+        "bizType": "Text",
+        "readable": true,
+        "writeable": false
+      }
+    ]
+  },
+  "createdAt": 1786706824284,
+  "updatedAt": 1786706824284,
+  "createdBy": 7399315438066270212
+}

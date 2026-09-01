@@ -1,0 +1,797 @@
+{
+ "物料资产主表": {
+  "id": "tbl3C5fTH08IyLkA",
+  "fields": [
+   {
+    "name": "创建时间",
+    "id": "fld1hs863y",
+    "type": "created_at"
+   },
+   {
+    "name": "当前版本",
+    "id": "fldU1HDeTF",
+    "type": "text"
+   },
+   {
+    "name": "策划及审核人",
+    "id": "fldtuIfpCY",
+    "type": "user"
+   },
+   {
+    "name": "发布时间",
+    "id": "fldODmkIHf",
+    "type": "datetime"
+   },
+   {
+    "name": "当前有效附件",
+    "id": "fld4WpNDoL",
+    "type": "attachment"
+   },
+   {
+    "name": "发布记录",
+    "id": "fld79QrvI1",
+    "type": "link"
+   },
+   {
+    "name": "是否推荐使用",
+    "id": "fldn0KmkhG",
+    "type": "checkbox"
+   },
+   {
+    "name": "产品型号",
+    "id": "fldCVoZ8zt",
+    "type": "text"
+   },
+   {
+    "name": "内部物料ID",
+    "id": "fldtdmsui4",
+    "type": "auto_number"
+   },
+   {
+    "name": "有效期",
+    "id": "fld7uyk6bW",
+    "type": "datetime"
+   },
+   {
+    "name": "版本记录",
+    "id": "fld1osF52w",
+    "type": "link"
+   },
+   {
+    "name": "关联处理池",
+    "id": "fldHcBBjcX",
+    "type": "link"
+   },
+   {
+    "name": "物料名称",
+    "id": "fld6wmGrLa",
+    "type": "text"
+   },
+   {
+    "name": "产品系列",
+    "id": "fldnTqywlh",
+    "type": "text"
+   },
+   {
+    "name": "语言",
+    "id": "fld74AKRDB",
+    "type": "select"
+   },
+   {
+    "name": "是否允许外发",
+    "id": "fldV316oTv",
+    "type": "checkbox"
+   },
+   {
+    "name": "风险标签",
+    "id": "fldjJGrpbx",
+    "type": "select"
+   },
+   {
+    "name": "标准命名",
+    "id": "fldMZOUZZN",
+    "type": "text"
+   },
+   {
+    "name": "区域二创记录",
+    "id": "fldvi5CEKO",
+    "type": "link"
+   },
+   {
+    "name": "封面图",
+    "id": "fldXzesDgZ",
+    "type": "attachment"
+   },
+   {
+    "name": "问题反馈",
+    "id": "fldRu7QM69",
+    "type": "link"
+   },
+   {
+    "name": "预览文件(S)",
+    "id": "fldomSV8ds",
+    "type": "attachment"
+   },
+   {
+    "name": "产品线",
+    "id": "fldDLt4i08",
+    "type": "select"
+   },
+   {
+    "name": "版本状态",
+    "id": "fldvc5bbEW",
+    "type": "select"
+   },
+   {
+    "name": "产品或品牌物料",
+    "id": "fld1KynQGf",
+    "type": "select"
+   },
+   {
+    "name": "源文件(L)",
+    "id": "fldJ1mRwLq",
+    "type": "attachment"
+   },
+   {
+    "name": "适用区域",
+    "id": "fldVzP1KU3",
+    "type": "select"
+   },
+   {
+    "name": "设计师",
+    "id": "fldIYsEr3z",
+    "type": "user"
+   },
+   {
+    "name": "物料类型",
+    "id": "fldSoGSdj8",
+    "type": "select"
+   },
+   {
+    "name": "手动同步信息",
+    "id": "fldBw3N2ex",
+    "type": "not_support"
+   },
+   {
+    "name": "发布状态",
+    "id": "fldoX5wk6w",
+    "type": "select"
+   },
+   {
+    "name": "领取记录",
+    "id": "fld14AN3dJ",
+    "type": "link"
+   }
+  ]
+ },
+ "版本记录表": {
+  "id": "tbl3S60VSKy1dGbj",
+  "fields": [
+   {
+    "name": "发布时间",
+    "id": "fldJ3EMF3f",
+    "type": "datetime"
+   },
+   {
+    "name": "修改原因",
+    "id": "fld5qw6xjl",
+    "type": "select"
+   },
+   {
+    "name": "是否当前有效",
+    "id": "fldhz3ZppP",
+    "type": "checkbox"
+   },
+   {
+    "name": "版本号",
+    "id": "fldz2xwIjN",
+    "type": "text"
+   },
+   {
+    "name": "替代版本",
+    "id": "fldlAU68bk",
+    "type": "link"
+   },
+   {
+    "name": "关联物料",
+    "id": "fldOpjiRlv",
+    "type": "link"
+   },
+   {
+    "name": "对比旧版本",
+    "id": "fldDlyr4dL",
+    "type": "link"
+   },
+   {
+    "name": "人工确认改动点",
+    "id": "fldydvgpVD",
+    "type": "text"
+   },
+   {
+    "name": "审核状态",
+    "id": "fldtIxRanX",
+    "type": "select"
+   },
+   {
+    "name": "预览文件(S)",
+    "id": "flduIkz0C9",
+    "type": "attachment"
+   },
+   {
+    "name": "创建时间",
+    "id": "fld6LjKolq",
+    "type": "created_at"
+   },
+   {
+    "name": "本版附件",
+    "id": "fldFQr9Rbw",
+    "type": "attachment"
+   },
+   {
+    "name": "版本ID",
+    "id": "fldcvLkU8B",
+    "type": "text"
+   },
+   {
+    "name": "版本类型",
+    "id": "fld4K9D8Ml",
+    "type": "select"
+   },
+   {
+    "name": "AI对比摘要",
+    "id": "fldsaEbSBN",
+    "type": "text"
+   },
+   {
+    "name": "源文件(L)",
+    "id": "fldvtCWp7e",
+    "type": "attachment"
+   },
+   {
+    "name": "修改人",
+    "id": "fldYHQIo7d",
+    "type": "user"
+   }
+  ]
+ },
+ "AI待处理池": {
+  "id": "tblcAERSb9EKbx5W",
+  "fields": [
+   {
+    "name": "处理日志",
+    "id": "fld9VEYSA0",
+    "type": "text"
+   },
+   {
+    "name": "上传时间",
+    "id": "fldCq0Mozu",
+    "type": "created_at"
+   },
+   {
+    "name": "上传方式",
+    "id": "fldohPBWfI",
+    "type": "select"
+   },
+   {
+    "name": "AI追问对象",
+    "id": "fldDEmbGoY",
+    "type": "user"
+   },
+   {
+    "name": "缺失信息",
+    "id": "fldhhwUMRh",
+    "type": "text"
+   },
+   {
+    "name": "预览文件（S）",
+    "id": "fldTZF6vCx",
+    "type": "attachment"
+   },
+   {
+    "name": "设计Brief",
+    "id": "fldf3FX8lS",
+    "type": "text"
+   },
+   {
+    "name": "处理锁",
+    "id": "fldHrLogC3",
+    "type": "checkbox"
+   },
+   {
+    "name": "处理状态",
+    "id": "fld2LqhmT5",
+    "type": "select"
+   },
+   {
+    "name": "上传文件",
+    "id": "fldcOKGnHe",
+    "type": "attachment"
+   },
+   {
+    "name": "设计师",
+    "id": "fldOR3yRgq",
+    "type": "user"
+   },
+   {
+    "name": "关联主表",
+    "id": "fldDqDp3by",
+    "type": "link"
+   },
+   {
+    "name": "AI识别结果",
+    "id": "fldPYFZ0De",
+    "type": "text"
+   },
+   {
+    "name": "确认结果",
+    "id": "fldUUQkghW",
+    "type": "select"
+   },
+   {
+    "name": "确认后自动发布",
+    "id": "fld2avzfPJ",
+    "type": "checkbox"
+   },
+   {
+    "name": "上传者",
+    "id": "fldiUMQdbG",
+    "type": "user"
+   },
+   {
+    "name": "关联旧版本",
+    "id": "fldRHigFMa",
+    "type": "link"
+   },
+   {
+    "name": "原始文件名",
+    "id": "fldirMRJtq",
+    "type": "text"
+   },
+   {
+    "name": "策划人及审核人",
+    "id": "flddEKvsOe",
+    "type": "user"
+   },
+   {
+    "name": "重试次数",
+    "id": "fldLTbxzC0",
+    "type": "number"
+   },
+   {
+    "name": "用户填写说明",
+    "id": "fld7VmbG2C",
+    "type": "text"
+   },
+   {
+    "name": "待处理ID",
+    "id": "fld6pvxVZU",
+    "type": "auto_number"
+   },
+   {
+    "name": "源文件(L)",
+    "id": "fld05lnLJQ",
+    "type": "attachment"
+   }
+  ]
+ },
+ "发布记录表": {
+  "id": "tbl5u1ZZoCGA3UTI",
+  "fields": [
+   {
+    "name": "通知状态",
+    "id": "fldBnVFdEj",
+    "type": "select"
+   },
+   {
+    "name": "发布ID",
+    "id": "fldyBl0L34",
+    "type": "auto_number"
+   },
+   {
+    "name": "创建时间",
+    "id": "fldsJjFOrL",
+    "type": "created_at"
+   },
+   {
+    "name": "发布人",
+    "id": "fldTDGhqi6",
+    "type": "user"
+   },
+   {
+    "name": "旧版本处理方式",
+    "id": "fldMd2Fv00",
+    "type": "select"
+   },
+   {
+    "name": "发布区域",
+    "id": "fld3bg4jq1",
+    "type": "select"
+   },
+   {
+    "name": "发布说明",
+    "id": "fldmEOh06T",
+    "type": "text"
+   },
+   {
+    "name": "发布版本",
+    "id": "fldXh6SeC7",
+    "type": "link"
+   },
+   {
+    "name": "关联物料",
+    "id": "fldXkULwGr",
+    "type": "link"
+   },
+   {
+    "name": "发布对象",
+    "id": "fldUFxjzxh",
+    "type": "select"
+   },
+   {
+    "name": "发布标题",
+    "id": "fldr9cXgqW",
+    "type": "text"
+   },
+   {
+    "name": "是否通知旧版废弃",
+    "id": "fldOMs4Ho8",
+    "type": "checkbox"
+   },
+   {
+    "name": "发布时间",
+    "id": "flde1Eieds",
+    "type": "datetime"
+   }
+  ]
+ },
+ "区域配置表": {
+  "id": "tblDbm7F8cHBUPcw",
+  "fields": [
+   {
+    "name": "区域负责人",
+    "id": "fld5VRRsXx",
+    "type": "user"
+   },
+   {
+    "name": "区域成员",
+    "id": "fldoDTRs2n",
+    "type": "user"
+   },
+   {
+    "name": "可见物料类型",
+    "id": "fldGrPrwiP",
+    "type": "select"
+   },
+   {
+    "name": "默认语言",
+    "id": "fld6X7imyQ",
+    "type": "select"
+   },
+   {
+    "name": "是否允许二创",
+    "id": "fld2rYr2KM",
+    "type": "checkbox"
+   },
+   {
+    "name": "区域编码",
+    "id": "fldUTiQTMu",
+    "type": "text"
+   },
+   {
+    "name": "区域",
+    "id": "fld75hDSyK",
+    "type": "text"
+   },
+   {
+    "name": "是否允许客户外发",
+    "id": "fldPWJti2T",
+    "type": "select"
+   },
+   {
+    "name": "禁用产品",
+    "id": "fldp8VEz4u",
+    "type": "text"
+   },
+   {
+    "name": "二创是否需总部审核",
+    "id": "fldzjPChmY",
+    "type": "checkbox"
+   }
+  ]
+ },
+ "区域二创记录表": {
+  "id": "tbl7tphraieJxyaz",
+  "fields": [
+   {
+    "name": "区域修改说明",
+    "id": "fldNuC49Eu",
+    "type": "text"
+   },
+   {
+    "name": "关联总部物料",
+    "id": "fldNgKyOgH",
+    "type": "link"
+   },
+   {
+    "name": "语言",
+    "id": "fldUYCuIQY",
+    "type": "select"
+   },
+   {
+    "name": "区域版本号",
+    "id": "fld6jBkbgg",
+    "type": "text"
+   },
+   {
+    "name": "区域",
+    "id": "fldQC00gyJ",
+    "type": "select"
+   },
+   {
+    "name": "AI对比摘要",
+    "id": "fldy1JPZjc",
+    "type": "text"
+   },
+   {
+    "name": "区域导出文件(M)",
+    "id": "fldD2ayns8",
+    "type": "attachment"
+   },
+   {
+    "name": "审核状态",
+    "id": "fldYF2Ypcn",
+    "type": "select"
+   },
+   {
+    "name": "区域源文件(L)",
+    "id": "fldPCTJrYR",
+    "type": "attachment"
+   },
+   {
+    "name": "创建时间",
+    "id": "fldgDzOm0P",
+    "type": "created_at"
+   },
+   {
+    "name": "区域版本ID",
+    "id": "fldN5QmUZS",
+    "type": "text"
+   },
+   {
+    "name": "修改目的",
+    "id": "fldEa6nvUf",
+    "type": "select"
+   },
+   {
+    "name": "基于总部版本",
+    "id": "fldEXZwH7R",
+    "type": "link"
+   },
+   {
+    "name": "修改人",
+    "id": "fldR2HcVFa",
+    "type": "user"
+   },
+   {
+    "name": "是否当前区域有效版本",
+    "id": "fldNzv2b1Y",
+    "type": "checkbox"
+   },
+   {
+    "name": "是否允许外发",
+    "id": "fldhkBh0K7",
+    "type": "checkbox"
+   }
+  ]
+ },
+ "领取下载记录表": {
+  "id": "tblo8mHKxrY8nwIx",
+  "fields": [
+   {
+    "name": "是否已被新版替代",
+    "id": "fldnXYPtpt",
+    "type": "checkbox"
+   },
+   {
+    "name": "物料",
+    "id": "fldoCylHiE",
+    "type": "link"
+   },
+   {
+    "name": "下载时间",
+    "id": "fldr3DbXf7",
+    "type": "created_at"
+   },
+   {
+    "name": "使用目的",
+    "id": "fldvsKNsyv",
+    "type": "select"
+   },
+   {
+    "name": "领取记录",
+    "id": "fld6aLdarh",
+    "type": "text"
+   },
+   {
+    "name": "所属区域",
+    "id": "fldqaYc2qt",
+    "type": "select"
+   },
+   {
+    "name": "是否已通知",
+    "id": "fld1S1ZkGf",
+    "type": "checkbox"
+   },
+   {
+    "name": "版本",
+    "id": "fldK3drbiL",
+    "type": "link"
+   },
+   {
+    "name": "记录ID",
+    "id": "fld8kb3F1d",
+    "type": "auto_number"
+   },
+   {
+    "name": "领取下载人",
+    "id": "fldqtZknzX",
+    "type": "user"
+   }
+  ]
+ },
+ "问题反馈表": {
+  "id": "tblzXAviloxcxUSw",
+  "fields": [
+   {
+    "name": "问题类型",
+    "id": "fldNeTNXm9",
+    "type": "select"
+   },
+   {
+    "name": "问题标题",
+    "id": "fldsyXvJiC",
+    "type": "text"
+   },
+   {
+    "name": "严重程度",
+    "id": "fldh0IGLjM",
+    "type": "select"
+   },
+   {
+    "name": "修复版本",
+    "id": "flduzMINHC",
+    "type": "link"
+   },
+   {
+    "name": "关联版本",
+    "id": "fldDenmr45",
+    "type": "link"
+   },
+   {
+    "name": "是否需要下架",
+    "id": "fld5AUlDDi",
+    "type": "checkbox"
+   },
+   {
+    "name": "处理负责人",
+    "id": "fldkF4K4M6",
+    "type": "user"
+   },
+   {
+    "name": "处理状态",
+    "id": "fldFjaQ66J",
+    "type": "select"
+   },
+   {
+    "name": "问题描述",
+    "id": "fldgooHQOG",
+    "type": "text"
+   },
+   {
+    "name": "反馈人",
+    "id": "fldyl0mSmg",
+    "type": "user"
+   },
+   {
+    "name": "问题ID",
+    "id": "fldvReIRmA",
+    "type": "auto_number"
+   },
+   {
+    "name": "关联物料",
+    "id": "fldTqv4zrY",
+    "type": "link"
+   },
+   {
+    "name": "创建时间",
+    "id": "fldsMj7D1I",
+    "type": "created_at"
+   }
+  ]
+ },
+ "AI处理日志表": {
+  "id": "tblQi2fwq36kK6kQ",
+  "fields": [
+   {
+    "name": "对象类型",
+    "id": "fld4oJ7uHH",
+    "type": "select"
+   },
+   {
+    "name": "日志ID",
+    "id": "fldrxYACYB",
+    "type": "auto_number"
+   },
+   {
+    "name": "关联物料",
+    "id": "fldPcrE0Vf",
+    "type": "link"
+   },
+   {
+    "name": "输入信息摘要",
+    "id": "fldnOpJzXL",
+    "type": "text"
+   },
+   {
+    "name": "执行时间",
+    "id": "fldhWm3Kpu",
+    "type": "created_at"
+   },
+   {
+    "name": "人工确认结果",
+    "id": "fldeTxZYSY",
+    "type": "select"
+   },
+   {
+    "name": "执行状态",
+    "id": "fldDX5DYOf",
+    "type": "select"
+   },
+   {
+    "name": "调用知识库",
+    "id": "fldeUVN9On",
+    "type": "select"
+   },
+   {
+    "name": "日志标题",
+    "id": "fldeXSKb8A",
+    "type": "text"
+   },
+   {
+    "name": "AI判断结果",
+    "id": "fldtTmIKGb",
+    "type": "text"
+   },
+   {
+    "name": "耗时秒",
+    "id": "fldcNhO5sV",
+    "type": "number"
+   },
+   {
+    "name": "AI动作类型",
+    "id": "fld73y3I7n",
+    "type": "select"
+   }
+  ]
+ },
+ "人员定义表": {
+  "id": "tblMXYsjBpmnVDyc",
+  "fields": [
+   {
+    "name": "文本",
+    "id": "fldMA7JI6i",
+    "type": "text"
+   },
+   {
+    "name": "人员",
+    "id": "fldsEyayvx",
+    "type": "user"
+   },
+   {
+    "name": "区域标识",
+    "id": "fldjRLNQNl",
+    "type": "select"
+   }
+  ]
+ }
+}

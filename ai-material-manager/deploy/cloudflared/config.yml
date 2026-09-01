@@ -1,0 +1,7 @@
+tunnel: 2ea7a46a-ad49-4b72-87df-11d72b54210a
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: materials.caojunaimcp.com
+    service: http://app:3000
+  - service: http_status:404

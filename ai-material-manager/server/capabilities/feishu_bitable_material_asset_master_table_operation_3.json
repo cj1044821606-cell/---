@@ -1,0 +1,102 @@
+{
+  "id": "feishu_bitable_material_asset_master_table_operation_3",
+  "pluginKey": "@official-plugins/feishu-bitable",
+  "pluginVersion": "1.0.22",
+  "name": "飞书多维表格「物料资产主表」读写实例",
+  "description": "用于读写飞书多维表格「物料资产主表」中的数据，包含物料名称、是否推荐、有效期等全部字段的操作能力",
+  "icon": "",
+  "paramsSchema": {},
+  "formValue": {
+    "tableID": "tbl3C5fTH08IyLkA",
+    "fields": [
+      {
+        "writeable": true,
+        "id": "fld_material_name",
+        "name": "物料名称",
+        "type": 1,
+        "bizType": "Text",
+        "readable": true
+      },
+      {
+        "readable": true,
+        "writeable": true,
+        "id": "fld_is_recommended",
+        "name": "是否推荐",
+        "type": 7,
+        "bizType": "Checkbox"
+      },
+      {
+        "bizType": "DateTime",
+        "readable": true,
+        "writeable": true,
+        "id": "fld_valid_period",
+        "name": "有效期",
+        "type": 5
+      },
+      {
+        "name": "风险标签",
+        "type": 4,
+        "bizType": "MultiSelect",
+        "enumValues": [],
+        "readable": true,
+        "writeable": true,
+        "id": "fld_risk_tags"
+      },
+      {
+        "name": "语言",
+        "type": 3,
+        "bizType": "SingleSelect",
+        "enumValues": [],
+        "readable": true,
+        "writeable": true,
+        "id": "fld_language"
+      },
+      {
+        "type": 4,
+        "bizType": "MultiSelect",
+        "enumValues": [],
+        "readable": true,
+        "writeable": true,
+        "id": "fld_applicable_region",
+        "name": "适用区域"
+      },
+      {
+        "id": "fld_subscriber",
+        "name": "订阅人",
+        "type": 11,
+        "bizType": "User",
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "id": "fld_publish_status",
+        "name": "发布状态",
+        "type": 3,
+        "bizType": "SingleSelect",
+        "enumValues": [],
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "bizType": "Number",
+        "readable": true,
+        "writeable": true,
+        "id": "fld_current_version",
+        "name": "当前版本",
+        "type": 2
+      },
+      {
+        "writeable": true,
+        "id": "fld_standard_name",
+        "name": "标准命名",
+        "type": 1,
+        "bizType": "Text",
+        "readable": true
+      }
+    ],
+    "appToken": "DPCCbp65waiDtys1JfucMKm8nTe"
+  },
+  "createdAt": 1786706214571,
+  "updatedAt": 1786706214571,
+  "createdBy": 7399315438066270212
+}

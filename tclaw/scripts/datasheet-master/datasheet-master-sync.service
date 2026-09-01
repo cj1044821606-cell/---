@@ -1,0 +1,12 @@
+[Unit]
+Description=Product Datasheet master table sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/tclaw/scripts/datasheet-master
+ExecStart=/usr/bin/python3 /opt/tclaw/scripts/datasheet-master/datasheet_master_sync.py --sync
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/root/.local/bin
+Environment=LARK_CLI_NO_PROXY=1
+User=root

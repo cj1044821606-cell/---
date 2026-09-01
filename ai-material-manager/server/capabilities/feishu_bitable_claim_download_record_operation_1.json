@@ -1,0 +1,28 @@
+{
+  "id": "feishu_bitable_claim_download_record_operation_1",
+  "pluginKey": "@official-plugins/feishu-bitable",
+  "pluginVersion": "1.0.22",
+  "name": "飞书多维表格「领取下载记录表」写入实例",
+  "description": "飞书多维表格「领取下载记录表」的操作实例，支持新增记录、批量更新、查询记录、查询单条等能力",
+  "icon": "",
+  "paramsSchema": {},
+  "formValue": {
+    "appToken": "DPCCbp65waiDtys1JfucMKm8nTe",
+    "tableID": "tblo8mHKxrY8nwIx",
+    "fields": [
+      "领取记录",
+      "领取下载人",
+      "所属区域",
+      "所属部门",
+      "是否已被新版替代",
+      "是否已通知",
+      "物料",
+      "版本",
+      "下载时间",
+      "记录ID（领用）"
+    ]
+  },
+  "createdAt": 1786705278041,
+  "updatedAt": 1786705278041,
+  "createdBy": 7399315438066270212
+}

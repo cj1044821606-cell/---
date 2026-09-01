@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+.env.local
+.env.production
+var
+output
+.playwright-cli
+*.log

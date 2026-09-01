@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "incremental": true,
+    "baseUrl": "./",
+    "outDir": "./dist",
+    "preserveWatchOutput": true,
+    "paths": {
+      "@server/*": ["server/*"],
+      "@shared/*": ["shared/*"],
+    }
+  },
+  "watchOptions": {
+    "excludeDirectories": ["node_modules/**"]
+  },
+  "include": ["server/**/*", "shared/**/*.ts"],
+  "exclude": ["node_modules", "dist", "client", "source_package", "**/*.spec.ts", "**/*.e2e-spec.ts"]
+}

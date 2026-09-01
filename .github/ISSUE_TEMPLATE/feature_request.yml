@@ -1,0 +1,43 @@
+name: 功能需求
+description: 提出一个有明确用户价值的功能或优化
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 用户场景
+      description: 谁在什么情况下遇到了什么问题？
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 期望结果
+      description: 描述用户最终能完成什么，不必先限定技术方案。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 已有想法
+      description: 可以写方案或附截图；方案有问题时允许开发者提出替代方案。
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      placeholder: "- [ ] …\n- [ ] …"
+    validations:
+      required: true
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: 可能涉及
+      options:
+        - label: 前端 UI
+        - label: NestJS 接口
+        - label: 飞书 Base 字段或记录
+        - label: 飞书工作流
+        - label: TClaw
+        - label: Google VM 部署
+

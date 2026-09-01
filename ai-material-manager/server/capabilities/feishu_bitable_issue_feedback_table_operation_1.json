@@ -1,0 +1,108 @@
+{
+  "id": "feishu_bitable_issue_feedback_table_operation_1",
+  "pluginKey": "@official-plugins/feishu-bitable",
+  "pluginVersion": "1.0.22",
+  "name": "飞书多维表格「问题反馈表」读写实例",
+  "description": "对飞书多维表格问题反馈表进行数据的创建、查询、更新、删除等操作",
+  "icon": "",
+  "paramsSchema": {},
+  "formValue": {
+    "appToken": "DPCCbp65waiDtys1JfucMKm8nTe",
+    "tableID": "tblzXAviloxcxUSw",
+    "fields": [
+      {
+        "type": 1,
+        "bizType": "Text",
+        "readable": true,
+        "writeable": true,
+        "id": "fldsyXvJiC",
+        "name": "问题标题"
+      },
+      {
+        "enumValues": [
+          "参数错误",
+          "翻译错误",
+          "视觉错误",
+          "过期版本",
+          "其他"
+        ],
+        "id": "fldNeTNXm9",
+        "name": "问题类型",
+        "type": 3,
+        "bizType": "SingleSelect",
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "id": "fldgooHQOG",
+        "name": "问题描述",
+        "type": 1,
+        "bizType": "Text",
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "writeable": true,
+        "enumValues": [
+          "高",
+          "中",
+          "低"
+        ],
+        "id": "fldh0IGLjM",
+        "name": "严重程度",
+        "type": 3,
+        "bizType": "SingleSelect",
+        "readable": true
+      },
+      {
+        "readable": true,
+        "writeable": true,
+        "id": "fldyl0mSmg",
+        "name": "反馈人",
+        "type": 11,
+        "bizType": "User"
+      },
+      {
+        "writeable": true,
+        "id": "fldTqv4zrY",
+        "name": "关联物料",
+        "type": 18,
+        "bizType": "SingleLink",
+        "readable": true
+      },
+      {
+        "name": "关联版本",
+        "type": 18,
+        "bizType": "SingleLink",
+        "readable": true,
+        "writeable": true,
+        "id": "fldDenmr45"
+      },
+      {
+        "readable": true,
+        "writeable": true,
+        "enumValues": [
+          "待处理",
+          "处理中",
+          "已修复",
+          "不处理"
+        ],
+        "id": "fldFjaQ66J",
+        "name": "处理状态",
+        "type": 3,
+        "bizType": "SingleSelect"
+      },
+      {
+        "name": "处理负责人",
+        "type": 11,
+        "bizType": "User",
+        "readable": true,
+        "writeable": true,
+        "id": "fldkF4K4M6"
+      }
+    ]
+  },
+  "createdAt": 1786706784951,
+  "updatedAt": 1786706784951,
+  "createdBy": 7399315438066270212
+}

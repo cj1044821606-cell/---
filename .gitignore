@@ -1,0 +1,49 @@
+# Local tools and operating-system files
+.DS_Store
+._*
+.claude/
+.codex/
+.vscode/
+.idea/
+
+# Secrets and machine-specific configuration
+.env
+.env.*
+*.env
+!.env.example
+!**/.env.example
+!*.env.example
+!**/*.env.example
+**/credentials.json
+**/*.pem
+**/*.p12
+
+# Dependencies, builds, caches, and runtime state
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+*.tsbuildinfo
+*.log
+*.pid
+.npm_cache/
+.playwright-cli/
+**/.playwright-cli/
+.agent-memory/
+**/.agent-memory/
+**/var/
+**/.drive_upload_work/
+**/.product_page_staging_work/
+**/.datasheet_master_work/
+
+# Local exports, large test assets, and generated packages
+_test/
+backups/
+output/
+tmp/
+ai-material-manager/输出/
+*.zip

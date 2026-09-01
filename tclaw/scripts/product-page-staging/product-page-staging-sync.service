@@ -1,0 +1,7 @@
+[Unit]
+Description=Product page staging Datasheet cloud-link sync
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/tclaw/scripts/product-page-staging
+ExecStart=/usr/bin/python3 /opt/tclaw/scripts/product-page-staging/product_page_staging_sync.py --sync

@@ -1,0 +1,43 @@
+name: Bug 报告
+description: 报告可以复现的错误或线上异常
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题描述
+      description: 发生了什么，对谁造成了什么影响？
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      placeholder: "1. 打开…\n2. 点击…\n3. 看到…"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 证据
+      description: 截图、错误信息、Base 记录 ID 或日志时间。不要粘贴密钥。
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 环境
+      options:
+        - 线上 Google VM
+        - 本地开发
+        - 飞书桌面端
+        - 飞书移动端
+        - 普通浏览器
+    validations:
+      required: true
+

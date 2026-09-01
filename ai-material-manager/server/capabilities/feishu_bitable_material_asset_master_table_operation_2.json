@@ -1,0 +1,17 @@
+{
+  "id": "feishu_bitable_material_asset_master_table_operation_2",
+  "pluginKey": "@official-plugins/feishu-bitable",
+  "pluginVersion": "1.0.22",
+  "name": "飞书多维表格物料资产主表读写实例",
+  "description": "用于应用服务端更新物料白名单字段与订阅者数组，支持查询记录、查询单条、批量更新、聚合查询能力",
+  "icon": "",
+  "paramsSchema": {},
+  "formValue": {
+    "appToken": "DPCCbp65waiDtys1JfucMKm8nTe",
+    "tableID": "tbl3C5fTH08IyLkA",
+    "fields": []
+  },
+  "createdAt": 1786704978012,
+  "updatedAt": 1786704978012,
+  "createdBy": 7399315438066270212
+}

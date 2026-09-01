@@ -1,0 +1,29 @@
+# systemd 服务单元：物料云盘上传监听器
+# 安装：
+#   sudo cp drive-uploader.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now drive-uploader
+# 查看日志：journalctl -u drive-uploader -f    或    tail -f /tmp/drive_uploader/uploader.log
+
+[Unit]
+Description=Feishu Drive Upload Listener (物料云盘上传器)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 改成脚本实际部署路径
+WorkingDirectory=/opt/drive-upload
+ExecStart=/bin/bash /opt/drive-upload/drive_upload_listener.sh
+Restart=always
+RestartSec=5
+# consume 常驻：脚本内已用 tail -f /dev/null 兜底 stdin，这里保持 null 即可
+StandardInput=null
+# PATH 需包含 lark-cli 与 python3 所在目录（按 VM 实际调整；或在 env 里用 LARK_CLI 全路径）
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/root/.local/bin
+Environment=LARK_CLI_NO_PROXY=1
+# 按实际部署账号设置（要能访问 lark-cli 的已登录凭证）
+User=root
+
+[Install]
+WantedBy=multi-user.target

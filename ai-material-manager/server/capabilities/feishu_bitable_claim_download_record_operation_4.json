@@ -1,0 +1,98 @@
+{
+  "id": "feishu_bitable_claim_download_record_operation_4",
+  "pluginKey": "@official-plugins/feishu-bitable",
+  "pluginVersion": "1.0.22",
+  "name": "飞书多维表格「领取下载记录表」读写实例",
+  "description": "用于飞书多维表格领取下载记录表的数据读写操作",
+  "icon": "",
+  "paramsSchema": {},
+  "formValue": {
+    "tableID": "tblo8mHKxrY8nwIx",
+    "fields": [
+      {
+        "writeable": true,
+        "id": "fld_claim_record",
+        "name": "领取记录",
+        "type": 1,
+        "bizType": "Text",
+        "readable": true
+      },
+      {
+        "type": 11,
+        "bizType": "User",
+        "readable": true,
+        "writeable": true,
+        "id": "fld_claim_user",
+        "name": "领取下载人"
+      },
+      {
+        "id": "fld_region",
+        "name": "所属区域",
+        "type": 7,
+        "bizType": "SingleSelect",
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "writeable": true,
+        "id": "fld_department",
+        "name": "所属部门",
+        "type": 8,
+        "bizType": "MultiSelect",
+        "readable": true
+      },
+      {
+        "id": "fld_replaced",
+        "name": "是否已被新版替代",
+        "type": 10,
+        "bizType": "Checkbox",
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "writeable": true,
+        "id": "fld_notified",
+        "name": "是否已通知",
+        "type": 10,
+        "bizType": "Checkbox",
+        "readable": true
+      },
+      {
+        "id": "fld_download_time",
+        "name": "下载时间",
+        "type": 9,
+        "bizType": "DateTime",
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "name": "物料",
+        "type": 18,
+        "bizType": "SingleLink",
+        "readable": true,
+        "writeable": true,
+        "id": "fld_material"
+      },
+      {
+        "id": "fld_version",
+        "name": "版本",
+        "type": 18,
+        "bizType": "SingleLink",
+        "readable": true,
+        "writeable": true
+      },
+      {
+        "name": "记录ID（领用）",
+        "type": 1,
+        "bizType": "Text",
+        "readable": true,
+        "writeable": true,
+        "id": "fld_record_id"
+      }
+    ],
+    "appToken": "DPCCbp65waiDtys1JfucMKm8nTe"
+  },
+  "createdAt": 1786706273207,
+  "updatedAt": 1786706273207,
+  "createdBy": 7399315438066270212
+}

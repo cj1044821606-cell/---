@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Product Datasheet master sync every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=datasheet-master-sync.service
+
+[Install]
+WantedBy=timers.target
