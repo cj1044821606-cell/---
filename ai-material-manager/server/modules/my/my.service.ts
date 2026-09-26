@@ -13,6 +13,7 @@ import type {
 } from "@shared/api.interface";
 import { extractLinkRecordIds } from "@server/common/utils/bitable-link.util";
 import { FilesService } from "@server/modules/files/files.service";
+import { ThumbnailService } from "@server/modules/files/thumbnail.service";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
 import {
   buildPoolProgressMap,
@@ -64,6 +65,7 @@ export class MyService {
   constructor(
     private readonly base: FeishuBaseGateway,
     private readonly files: FilesService,
+    private readonly thumbnails: ThumbnailService,
   ) {}
 
   async getReceived(userId: string): Promise<MyReceivedResponse> {
@@ -108,6 +110,10 @@ export class MyService {
       materialName: row.materialName ?? "",
       standardName: row.standardName ?? "",
       previewUrl: this.files.makeMediaUrl(
+        row.previewFileS[0] ?? row.coverImage[0],
+        userId,
+      ),
+      thumbUrl: this.thumbnails.makeThumbUrl(
         row.previewFileS[0] ?? row.coverImage[0],
         userId,
       ),

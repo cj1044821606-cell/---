@@ -54,22 +54,45 @@ export class FeishuBaseGateway {
     if (!this.appToken) throw new Error("FEISHU_BASE_APP_TOKEN is required");
   }
 
+  /**
+   * 读取整表。`maxStaleMs` 允许在缓存过期后的一段时间内先返回旧快照、
+   * 同时在后台刷新（stale-while-revalidate），适合对秒级新鲜度不敏感的浏览类页面。
+   */
   async rows<T extends Record<string, unknown>>(
     table: BaseTableKey,
-    options: { force?: boolean } = {},
+    options: { force?: boolean; maxStaleMs?: number } = {},
   ): Promise<T[]> {
     const cached = this.cache.get(table);
-    if (!options.force && cached && cached.expiresAt > Date.now()) {
+    const now = Date.now();
+    if (!options.force && cached && cached.expiresAt > now) {
       return cached.rows as T[];
     }
-    const pending = this.inFlight.get(table);
-    if (!options.force && pending) return pending as Promise<T[]>;
+    if (
+      !options.force &&
+      cached &&
+      options.maxStaleMs !== undefined &&
+      now - cached.expiresAt < options.maxStaleMs
+    ) {
+      void this.refresh(table).catch((error: unknown) => {
+        this.logger.warn(`Background refresh failed (${table}): ${String(error)}`);
+      });
+      return cached.rows as T[];
+    }
+    return this.refresh(table, options.force === true) as Promise<T[]>;
+  }
 
+  /** 合并同表并发读取；force 时总是发起新请求，保持原有语义 */
+  private refresh(
+    table: BaseTableKey,
+    force: boolean = false,
+  ): Promise<Record<string, unknown>[]> {
+    const pending = this.inFlight.get(table);
+    if (!force && pending) return pending;
     const request = this.fetchRows(table).finally(() => {
       this.inFlight.delete(table);
     });
     this.inFlight.set(table, request);
-    return request as Promise<T[]>;
+    return request;
   }
 
   async rowById<T extends Record<string, unknown>>(

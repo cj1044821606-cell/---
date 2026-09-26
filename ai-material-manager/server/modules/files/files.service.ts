@@ -91,21 +91,7 @@ export class FilesService {
     res: any,
     disposition: "inline" | "attachment",
   ): Promise<void> {
-    const tenantToken = await this.feishu.getTenantAccessToken();
-    const upstream = new URL(
-      `https://open.feishu.cn/open-apis/drive/v1/medias/${encodeURIComponent(locator.fileToken)}/download`,
-    );
-    if (upstream.protocol !== "https:" || upstream.hostname !== "open.feishu.cn") {
-      throw new BadRequestException("非法附件来源");
-    }
-
-    const response = await fetch(upstream, {
-      headers: { Authorization: `Bearer ${tenantToken}` },
-      signal: AbortSignal.timeout(60_000),
-    });
-    if (!response.ok) {
-      throw new Error(`Feishu media download failed: HTTP ${response.status}`);
-    }
+    const response = await this.fetchUpstream(locator.fileToken);
 
     const contentType =
       response.headers.get("content-type") ?? "application/octet-stream";
@@ -129,6 +115,30 @@ export class FilesService {
       nodeStream.on("end", resolve);
       nodeStream.on("error", reject);
     });
+  }
+
+  /** 从飞书拉取附件原文件；调用方负责消费或丢弃 body */
+  async fetchUpstream(
+    fileToken: string,
+    timeoutMs: number = 60_000,
+  ): Promise<Response> {
+    const tenantToken = await this.feishu.getTenantAccessToken();
+    const upstream = new URL(
+      `https://open.feishu.cn/open-apis/drive/v1/medias/${encodeURIComponent(fileToken)}/download`,
+    );
+    if (upstream.protocol !== "https:" || upstream.hostname !== "open.feishu.cn") {
+      throw new BadRequestException("非法附件来源");
+    }
+
+    const response = await fetch(upstream, {
+      headers: { Authorization: `Bearer ${tenantToken}` },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined);
+      throw new Error(`Feishu media download failed: HTTP ${response.status}`);
+    }
+    return response;
   }
 
   private sign(payload: MediaTokenPayload): string {
