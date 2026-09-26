@@ -1,5 +1,5 @@
-import React from "react";
-import { Globe2, Search, Send } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Globe2, Search, Send, X } from "lucide-react";
 
 import { Input } from "@client/src/components/ui/input";
 import {
@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@client/src/components/ui/select";
 import FilterChip from "@client/src/components/FilterChip";
+import { cn } from "@/lib/utils";
 
 export interface LibraryFilterBarProps {
   keywordInput: string;
@@ -28,8 +29,21 @@ export interface LibraryFilterBarProps {
   canViewGlobal: boolean;
   viewGlobal: boolean;
   onViewGlobalChange: (value: boolean) => void;
+  /** 桌面端滚动时吸顶，方便在长列表中随时调整筛选 */
+  sticky?: boolean;
   allValue: string;
   pt: (key: string) => string;
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag: string = target.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    target.isContentEditable
+  );
 }
 
 interface SelectFilterProps {
@@ -51,7 +65,7 @@ const SelectFilter: React.FC<SelectFilterProps> = ({
 }: SelectFilterProps) => (
   <Select value={value} onValueChange={onValueChange}>
     <SelectTrigger
-      className="h-10 w-full min-w-0 rounded-lg lg:w-[190px]"
+      className="h-10 w-[calc(50%-0.3125rem)] min-w-0 rounded-lg sm:w-[calc((100%-1.25rem)/3)] lg:w-[190px]"
       aria-label={label}
     >
       <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
@@ -88,21 +102,93 @@ const LibraryFilterBar: React.FC<LibraryFilterBarProps> = ({
   canViewGlobal,
   viewGlobal,
   onViewGlobalChange,
+  sticky = true,
   allValue,
   pt,
 }: LibraryFilterBarProps) => {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [stuck, setStuck] = useState<boolean>(false);
+
+  // 工具栏吸顶后加分隔阴影，提示下方内容在滚动
+  useEffect(() => {
+    const node: HTMLDivElement | null = sentinelRef.current;
+    if (!sticky || !node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]: IntersectionObserverEntry[]): void => setStuck(!entry.isIntersecting),
+      { rootMargin: "-57px 0px 0px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [sticky]);
+
+  // 键盘党快捷键：在页面任意处按 / 直接进入搜索
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (
+        event.key === "/" &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !isTypingTarget(event.target)
+      ) {
+        event.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
-    <section className="mb-5 flex flex-wrap items-center gap-2.5">
-      <div className="relative min-w-[260px] max-w-[400px] flex-1">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+    <>
+    <div ref={sentinelRef} aria-hidden="true" className="h-px" />
+    <section
+      className={cn(
+        "mb-4 flex flex-wrap items-center gap-2.5 bg-background transition-shadow duration-150",
+        sticky &&
+          "md:sticky md:top-14 md:z-20 md:-mx-8 md:px-8 md:py-3",
+        sticky && stuck && "md:border-b md:border-border md:shadow-[0_6px_12px_-10px_rgba(16,24,40,0.25)]",
+      )}
+    >
+      <div className="relative w-full min-w-[240px] sm:w-auto sm:max-w-[400px] sm:flex-1">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          ref={inputRef}
+          type="search"
           value={keywordInput}
           onChange={(event: React.ChangeEvent<HTMLInputElement>): void =>
             onKeywordChange(event.target.value)
           }
+          onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>): void => {
+            if (event.key === "Escape" && keywordInput !== "") {
+              event.preventDefault();
+              onKeywordChange("");
+            }
+          }}
           placeholder={pt("library.search.placeholder")}
-          className="h-10 rounded-lg pl-9"
+          aria-label={pt("library.search.placeholder")}
+          title={pt("library.search.shortcut")}
+          className="h-10 rounded-lg pl-9 pr-10 [&::-webkit-search-cancel-button]:hidden"
         />
+        {keywordInput !== "" ? (
+          <button
+            type="button"
+            onClick={(): void => {
+              onKeywordChange("");
+              inputRef.current?.focus();
+            }}
+            aria-label={pt("library.search.clear")}
+            className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-accent-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        ) : (
+          <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-muted px-1.5 font-mono text-xs text-muted-foreground md:block">
+            /
+          </kbd>
+        )}
       </div>
       <SelectFilter
         value={materialType}
@@ -128,7 +214,7 @@ const LibraryFilterBar: React.FC<LibraryFilterBarProps> = ({
         allValue={allValue}
         options={modelOptions}
       />
-      <span className="mx-0.5 h-6 w-px bg-border" />
+      <span className="mx-0.5 hidden h-6 w-px bg-border lg:block" />
       <FilterChip
         active={externalOnly}
         onClick={() => onExternalOnlyChange(!externalOnly)}
@@ -148,6 +234,7 @@ const LibraryFilterBar: React.FC<LibraryFilterBarProps> = ({
         </FilterChip>
       ) : null}
     </section>
+    </>
   );
 };
 

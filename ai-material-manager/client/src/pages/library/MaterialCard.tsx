@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import {
   Box,
@@ -12,6 +12,7 @@ import {
   Lock,
   Package,
   Send,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,9 +22,11 @@ import {
   translateMaterialStatus,
   type MaterialStatusLabel,
 } from "@shared/status";
-import { Image } from "@client/src/components/ui/image";
+import FallbackImage from "@client/src/components/FallbackImage";
 import type { Language } from "@client/src/i18n/dictionary";
+import { preloadPage } from "@client/src/lib/page-loaders";
 import { cn } from "@/lib/utils";
+import { prefetchMaterialDetail } from "./library-queries";
 
 export interface MaterialCardProps {
   baseRecordId: string;
@@ -37,6 +40,13 @@ export interface MaterialCardProps {
   releaseStatus?: string;
   versionStatus?: string;
   allowExternalSend?: boolean;
+  /** 480px 缩略图，优先使用；失败再依次尝试原图、封面、后端兜底 */
+  thumbUrl?: string | null;
+  productModel?: string | null;
+  appLanguage?: string;
+  isRecommended?: boolean;
+  /** 首屏卡片：立即加载并提高下载优先级 */
+  priority?: boolean;
 }
 
 interface TypeVisual {
@@ -108,6 +118,11 @@ const STATUS_ICONS: Record<MaterialStatusLabel, LucideIcon> = {
   bad: CircleAlert,
 };
 
+const RECOMMENDED_LABEL: Record<Language, string> = {
+  zh: "推荐",
+  en: "Featured",
+};
+
 const MaterialCard: React.FC<MaterialCardProps> = ({
   baseRecordId,
   materialName,
@@ -120,27 +135,22 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   releaseStatus,
   versionStatus,
   allowExternalSend,
+  thumbUrl = null,
+  productModel = null,
+  appLanguage = "",
+  isRecommended = false,
+  priority = false,
 }: MaterialCardProps) => {
-  // 封面降级链：previewUrl → coverUrl → thumbnail API → 类型占位
-  const [imgSrc, setImgSrc] = useState<string | null>(
-    previewUrl ?? coverUrl ?? null,
-  );
-  const [triedThumbnail, setTriedThumbnail] = useState<boolean>(false);
+  // 封面降级链：缩略图 → 原预览图 → 封面图 → 后端兜底缩略图 → 类型占位（绝不出现破图）
+  // 预览图与封面都没有时直接显示类型占位，不发无谓请求
+  const hasAnyImage: boolean = Boolean(thumbUrl || previewUrl || coverUrl);
+  const imageSources: Array<string | null> = hasAnyImage
+    ? [thumbUrl, previewUrl, coverUrl, `/api/materials/${baseRecordId}/thumbnail`]
+    : [];
 
-  useEffect(() => {
-    setImgSrc(previewUrl ?? coverUrl ?? null);
-    setTriedThumbnail(false);
-  }, [previewUrl, coverUrl, baseRecordId]);
-
-  const handleImageError = (): void => {
-    if (imgSrc === previewUrl && coverUrl) {
-      setImgSrc(coverUrl);
-    } else if (!triedThumbnail && baseRecordId) {
-      setImgSrc(`/api/materials/${baseRecordId}/thumbnail`);
-      setTriedThumbnail(true);
-    } else {
-      setImgSrc(null);
-    }
+  const handleIntent = (): void => {
+    preloadPage("material");
+    prefetchMaterialDetail(baseRecordId);
   };
 
   const visual: TypeVisual = getTypeVisual(materialType);
@@ -159,29 +169,34 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   );
   const StatusIcon: LucideIcon = STATUS_ICONS[statusLabel];
   const externalReady: boolean = allowExternalSend === true;
+  const metaParts: string[] = [productModel ?? "", appLanguage].filter(
+    (value: string): boolean => value.trim() !== "",
+  );
 
   return (
     <Link
       to={`/material/${baseRecordId}`}
-      className="group block overflow-hidden rounded-xl border border-border bg-card transition-[transform,box-shadow,border-color] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-strong hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      onPointerEnter={handleIntent}
+      onFocus={handleIntent}
+      onTouchStart={handleIntent}
+      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-[transform,box-shadow,border-color] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-strong hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:translate-y-0 active:shadow-sm"
     >
       <div className="relative grid aspect-[4/3] w-full place-items-center overflow-hidden bg-surface-sunken p-3.5">
-        {imgSrc !== null ? (
-          <Image
-            src={imgSrc}
-            alt={materialName}
-            loading="lazy"
-            onError={handleImageError}
-            className="max-h-full max-w-full rounded-md object-contain shadow-[0_0_0_1px_rgba(16_24_40_0.07)] transition-transform duration-150 ease-out group-hover:scale-[1.04]"
-          />
-        ) : (
-          <div
-            className="flex h-full w-full items-center justify-center"
-            style={{ background: visual.gradient }}
-          >
-            <visual.Icon className="size-5 text-accent-foreground" />
-          </div>
-        )}
+        <FallbackImage
+          sources={imageSources}
+          alt={materialName}
+          priority={priority}
+          skeletonClassName="inset-3.5"
+          className="relative max-h-full max-w-full rounded-md object-contain shadow-[0_0_0_1px_rgba(16_24_40_0.07)] transition-[opacity,transform] group-hover:scale-[1.04]"
+          placeholder={
+            <div
+              className="flex h-full w-full items-center justify-center rounded-md"
+              style={{ background: visual.gradient }}
+            >
+              <visual.Icon className="size-5 text-accent-foreground" />
+            </div>
+          }
+        />
         {materialType !== "" ? (
           <span className="absolute left-2.5 top-2.5 rounded-md border border-black/[0.07] bg-white/[0.86] px-1.5 py-0.5 text-xs font-medium text-foreground backdrop-blur-md">
             {materialType}
@@ -192,24 +207,34 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
             {currentVersion}
           </span>
         ) : null}
+        {isRecommended ? (
+          <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-primary px-1.5 py-0.5 text-xs font-medium text-primary-foreground">
+            <Star className="size-3" />
+            {RECOMMENDED_LABEL[language]}
+          </span>
+        ) : null}
       </div>
 
-      <div className="p-3.5">
+      <div className="flex flex-1 flex-col gap-2.5 p-3.5">
         <div className="min-w-0">
           <h3
-            className="line-clamp-2 min-h-[42px] text-[15px] font-semibold leading-[1.42] text-foreground"
+            className="line-clamp-2 min-h-[42px] text-[15px] font-semibold leading-[1.42] text-foreground transition-colors duration-150 group-hover:text-primary"
+            title={primaryTitle}
           >
             {primaryTitle}
           </h3>
           {secondaryTitle !== "" ? (
-            <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+            <p
+              className="mt-0.5 truncate font-mono text-xs text-muted-foreground"
+              title={secondaryTitle}
+            >
               {secondaryTitle}
             </p>
           ) : null}
         </div>
 
-        {showStatusBadge || showExternalBadge ? (
-          <div className="flex flex-wrap items-center gap-1.5">
+        {showStatusBadge || showExternalBadge || metaParts.length > 0 ? (
+          <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1.5">
             {showStatusBadge ? (
               <span
                 className={cn(
@@ -225,6 +250,11 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
               <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
                 <Send className="size-3" />
                 {EXTERNAL_LABELS.client[language]}
+              </span>
+            ) : null}
+            {metaParts.length > 0 ? (
+              <span className="ml-auto truncate font-mono text-xs text-foreground-subtle">
+                {metaParts.join(" · ")}
               </span>
             ) : null}
           </div>

@@ -5,7 +5,7 @@ import { Bell, Package } from "lucide-react";
 import { logger } from "@client/src/lib/logger";
 import type { MySubscribedItem } from "@shared/api.interface";
 import { getMySubscribed } from "@client/src/api/my";
-import { Image } from "@client/src/components/ui/image";
+import FallbackImage from "@client/src/components/FallbackImage";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import { makePt } from "./mine-i18n";
 import { ListEmpty, ListError, ListSkeleton } from "./MineListPrimitives";
@@ -65,18 +65,19 @@ const SubscribedList: React.FC = () => {
           to={`/material/${item.baseRecordId}`}
           className="overflow-hidden rounded-md border border-border bg-card shadow-sm transition-shadow duration-[var(--duration-fast)] hover:shadow-md"
         >
-          {item.previewUrl ? (
-            <Image
-              src={item.previewUrl}
+          <div className="relative h-28 w-full border-b border-border bg-surface-sunken">
+            <FallbackImage
+              sources={[item.thumbUrl, item.previewUrl]}
               alt={item.materialName}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="h-28 w-full border-b border-border object-cover"
+              skeletonClassName="inset-0 rounded-none"
+              className="h-28 w-full object-cover"
+              placeholder={
+                <div className="flex h-28 w-full items-center justify-center bg-gradient-to-br from-primary-soft to-primary-line">
+                  <Package className="size-5 text-primary" />
+                </div>
+              }
             />
-          ) : (
-            <div className="flex h-28 w-full items-center justify-center border-b border-border bg-gradient-to-br from-primary-soft to-primary-line">
-              <Package className="size-5 text-primary" />
-            </div>
-          )}
+          </div>
           <div className="space-y-1 p-3">
             <p className="truncate font-mono text-sm font-semibold">
               {item.standardName || pt("mine.untitled")}

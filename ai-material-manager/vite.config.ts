@@ -8,6 +8,11 @@ export default defineConfig(({ mode }) => {
     root: path.resolve(__dirname, 'client'),
     base: '/',
     plugins: [react()],
+    define: {
+      __APP_BUILD_ID__: JSON.stringify(
+        process.env.APP_BUILD_ID || Date.now().toString(36),
+      ),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'client/src'),
@@ -18,6 +23,25 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: path.resolve(__dirname, 'dist/client'),
       emptyOutDir: false,
+      rollupOptions: {
+        output: {
+          // 把几乎不变的第三方库拆成独立文件：发版只改业务代码时，浏览器仍可复用这部分缓存
+          manualChunks: {
+            'vendor-react': [
+              'react',
+              'react-dom',
+              'react-dom/client',
+              'react-router-dom',
+              'scheduler',
+            ],
+            'vendor-query': [
+              '@tanstack/react-query',
+              '@tanstack/react-query-persist-client',
+              '@tanstack/query-sync-storage-persister',
+            ],
+          },
+        },
+      },
     },
     server: {
       host: env.CLIENT_HOST || '0.0.0.0',

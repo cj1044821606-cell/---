@@ -51,3 +51,6 @@ declare namespace React {
     [key: `--${string}`]: string | number | undefined;
   }
 }
+
+/** 构建时注入的版本标识，用于在发版后丢弃不兼容的本地缓存 */
+declare const __APP_BUILD_ID__: string;

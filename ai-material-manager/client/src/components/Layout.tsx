@@ -45,18 +45,22 @@ import { useSystemSettings } from "@client/src/hooks/use-system-settings";
 import GroupGuideDialog, {
   hasJoinedGroup,
 } from "@client/src/components/GroupGuideDialog";
+import { useScrollRestoration } from "@client/src/hooks/use-scroll-restoration";
+import { preloadPage, type PageName } from "@client/src/lib/page-loaders";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   path: string;
   labelKey: string;
   icon: LucideIcon;
+  page: PageName;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { path: "/inbox", labelKey: "nav.inbox", icon: Inbox },
-  { path: "/library", labelKey: "nav.library", icon: Layers },
-  { path: "/mine", labelKey: "nav.mine", icon: User },
-  { path: "/more", labelKey: "nav.more", icon: MoreHorizontal },
+  { path: "/inbox", labelKey: "nav.inbox", icon: Inbox, page: "inbox" },
+  { path: "/library", labelKey: "nav.library", icon: Layers, page: "library" },
+  { path: "/mine", labelKey: "nav.mine", icon: User, page: "mine" },
+  { path: "/more", labelKey: "nav.more", icon: MoreHorizontal, page: "more" },
 ];
 
 const Layout: React.FC = () => {
@@ -71,6 +75,7 @@ const Layout: React.FC = () => {
   const settings = useSystemSettings();
   const [logoutOpen, setLogoutOpen] = useState<boolean>(false);
   const [guideOpen, setGuideOpen] = useState<boolean>(false);
+  useScrollRestoration();
 
   useEffect(() => {
     if (identity?.isUploadRole && !hasJoinedGroup()) {
@@ -118,7 +123,7 @@ const Layout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="hidden md:flex sticky top-0 z-40 h-14 items-center gap-6 border-b border-border bg-card px-6">
+      <header className="sticky top-0 z-40 hidden h-14 items-center gap-6 border-b border-border bg-card px-6 shadow-[0_1px_0_rgba(16,24,40,0.02)] md:flex">
         <div className="flex items-center gap-2">
           {appLogo ? (
             <Image
@@ -127,11 +132,11 @@ const Layout: React.FC = () => {
               className="size-7 rounded-md object-cover"
             />
           ) : (
-            <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-sm">
               <Package className="size-4" />
             </div>
           )}
-          <span className="text-sm font-semibold">
+          <span className="text-sm font-semibold tracking-tight">
             {appName ?? "AI 物料版本管理"}
           </span>
         </div>
@@ -140,12 +145,15 @@ const Layout: React.FC = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              onPointerEnter={() => preloadPage(item.page)}
+              onFocus={() => preloadPage(item.page)}
               className={({ isActive }: { isActive: boolean }) =>
-                `relative flex min-h-[38px] items-center gap-1.5 rounded-md px-3 text-sm transition-colors duration-[var(--duration-fast)] ${
+                cn(
+                  "relative flex min-h-[38px] items-center gap-1.5 rounded-md px-3 text-sm transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
                   isActive
                     ? "bg-primary-soft font-medium text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }`
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                )
               }
             >
               {({ isActive }: { isActive: boolean }) => (
@@ -153,7 +161,13 @@ const Layout: React.FC = () => {
                   <item.icon className="size-4" />
                   <span>{t(item.labelKey)}</span>
                   {item.path === "/inbox" && hasInboxDot && !isActive ? (
-                    <span className="absolute right-1 top-2 size-1.5 rounded-full bg-destructive" />
+                    <span className="absolute right-1 top-2 size-1.5 rounded-full bg-destructive ring-2 ring-card" />
+                  ) : null}
+                  {isActive ? (
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-x-3 -bottom-[9px] h-0.5 rounded-full bg-primary"
+                    />
                   ) : null}
                 </>
               )}
@@ -194,25 +208,33 @@ const Layout: React.FC = () => {
         </div>
       ) : null}
 
-      <main className="pb-20 md:pb-8">
+      <main className="pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
         <div className="mx-auto w-full max-w-[1280px] px-4 py-5 md:px-8 md:py-7">
           <Outlet />
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-card md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
         {NAV_ITEMS.map((item: NavItem) => (
           <NavLink
             key={item.path}
             to={item.path}
+            onTouchStart={() => preloadPage(item.page)}
             className={({ isActive }: { isActive: boolean }) =>
-              `relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-xs transition-colors duration-[var(--duration-fast)] ${
-                isActive ? "font-medium text-primary" : "text-muted-foreground"
-              }`
+              cn(
+                "relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-xs transition-colors duration-[var(--duration-fast)] active:bg-accent",
+                isActive ? "font-medium text-primary" : "text-muted-foreground",
+              )
             }
           >
             {({ isActive }: { isActive: boolean }) => (
               <>
+                {isActive ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-primary"
+                  />
+                ) : null}
                 <item.icon className="size-5" />
                 <span>{t(item.labelKey)}</span>
                 {item.path === "/inbox" && hasInboxDot && !isActive ? (
