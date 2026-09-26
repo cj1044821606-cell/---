@@ -1,11 +1,18 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 
 const BASE_TOKEN = "DPCCbp65waiDtys1JfucMKm8nTe";
 const WORKFLOW_ID = "wkfT3F7miVt4684k";
-const LARK_CLI = process.env.LARK_CLI ?? "/Users/jun.cao/.local/bin/lark-cli";
+/**
+ * lark-cli 路径：优先 LARK_CLI 环境变量，其次 TClaw VM 的持久化安装位置
+ * （见 tclaw/AGENTS.md 8.3 与 scripts/bootstrap/ensure_lark_cli.sh），最后回退到 PATH 中的 lark-cli。
+ */
+const PERSISTENT_LARK_CLI = "/home/node/.openclaw/npm-global/bin/lark-cli";
+const LARK_CLI =
+  process.env.LARK_CLI ??
+  (existsSync(PERSISTENT_LARK_CLI) ? PERSISTENT_LARK_CLI : "lark-cli");
 const APPLY = process.argv.includes("--apply");
 const BACKUP_PATH = "/tmp/ai-material-workflow-13-before-state-closure.json";
 
@@ -102,6 +109,18 @@ function receiveUpdateStep(id, title, fieldName) {
   };
 }
 
+/**
+ * workflow-update 需要 client_token/title/status/steps 全量 body（tclaw/AGENTS.md 第 4 节）。
+ * 沿用当前工作流的元数据，只替换 steps；workflow-get 未返回的字段不凭空构造。
+ */
+function workflowMeta(current) {
+  return {
+    ...(current.client_token ? { client_token: current.client_token } : {}),
+    title: current.title,
+    ...(current.status ? { status: current.status } : {}),
+  };
+}
+
 function buildPayload(current) {
   if (current.title !== "13 旧版本下架流程") {
     throw new Error(`Unexpected workflow title: ${current.title}`);
@@ -134,7 +153,7 @@ function buildPayload(current) {
   markReplaced.next = findReplacement.id;
 
   return {
-    title: current.title,
+    ...workflowMeta(current),
     steps: [
       ...withoutPreviousClosure,
       markReplaced,
@@ -154,7 +173,7 @@ function buildPayload(current) {
 
 const current = getWorkflow();
 const originalPayload = {
-  title: current.title,
+  ...workflowMeta(current),
   steps: current.steps.map(normalizedStep),
 };
 const payload = buildPayload(current);

@@ -1,10 +1,18 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
 const BASE_TOKEN = "DPCCbp65waiDtys1JfucMKm8nTe";
 const TABLE_ID = "tblcAERSb9EKbx5W";
-const LARK_CLI = process.env.LARK_CLI ?? "/Users/jun.cao/.local/bin/lark-cli";
+/**
+ * lark-cli 路径：优先 LARK_CLI 环境变量，其次 TClaw VM 的持久化安装位置
+ * （见 tclaw/AGENTS.md 8.3 与 scripts/bootstrap/ensure_lark_cli.sh），最后回退到 PATH 中的 lark-cli。
+ */
+const PERSISTENT_LARK_CLI = "/home/node/.openclaw/npm-global/bin/lark-cli";
+const LARK_CLI =
+  process.env.LARK_CLI ??
+  (existsSync(PERSISTENT_LARK_CLI) ? PERSISTENT_LARK_CLI : "lark-cli");
 const APPLY = process.argv.includes("--apply");
 
 const definitions = [
