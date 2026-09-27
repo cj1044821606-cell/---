@@ -6,6 +6,8 @@ import sharp from "sharp";
 import { encodeAttachmentLocator } from "@server/common/utils/attachment-locator.util";
 import type { FilesService } from "./files.service";
 import { ThumbnailService, isLikelyImage } from "./thumbnail.service";
+import { PdfPreviewService } from "./pdf-preview.service";
+import { jsPDF } from "jspdf";
 
 async function makePng(width: number, height: number): Promise<Buffer> {
   return sharp({
@@ -26,7 +28,7 @@ describe("ThumbnailService", () => {
     const png = await makePng(2400, 1800);
     fetchUpstream = jest.fn(async () => new Response(new Uint8Array(png)));
     const config = new ConfigService({ SESSION_SECRET: "s".repeat(32), THUMB_CACHE_DIR: dir });
-    service = new ThumbnailService({ fetchUpstream } as unknown as FilesService, config);
+    service = new ThumbnailService({ fetchUpstream } as unknown as FilesService, config, new PdfPreviewService());
     await service.onModuleInit();
   });
 
@@ -115,4 +117,30 @@ describe("ThumbnailService", () => {
     const files = await fs.readdir(dir);
     expect(files.some((name) => name.endsWith(".webp"))).toBe(true);
   });
+
+  it("renders only PDF page one and removes the temporary PDF", async () => {
+    const pdf = new jsPDF({ format: [100, 100] });
+    pdf.setFillColor(255, 0, 0);
+    pdf.rect(0, 0, 100, 100, "F");
+    pdf.addPage();
+    pdf.setFillColor(0, 0, 255);
+    pdf.rect(0, 0, 100, 100, "F");
+    fetchUpstream.mockImplementation(async () => new Response(pdf.output("arraybuffer")));
+    const target = { fileToken: "pdf-test", fileName: "spec.PDF" };
+    expect(service.makeThumbUrl(encodeAttachmentLocator(target), "ou_1")).not.toBeNull();
+    const result = await service.get(target, 480);
+    if (result.kind !== "file") throw new Error("expected PDF thumbnail");
+    const { data } = await sharp(result.filePath).resize(1, 1).raw().toBuffer({ resolveWithObject: true });
+    expect(data[0]).toBeGreaterThan(200);
+    expect(data[2]).toBeLessThan(40);
+    expect((await fs.readdir(dir)).filter((name) => name.endsWith(".pdf"))).toEqual([]);
+    await service.get(target, 480);
+    expect(fetchUpstream).toHaveBeenCalledTimes(1);
+  }, 45_000);
+
+  it("cleans malformed PDFs after renderer failure", async () => {
+    fetchUpstream.mockImplementation(async () => new Response("broken pdf"));
+    await expect(service.get({ fileToken: "bad-pdf", fileName: "broken.pdf" }, 480)).resolves.toEqual({ kind: "none" });
+    expect((await fs.readdir(dir)).filter((name) => name.endsWith(".pdf"))).toEqual([]);
+  }, 45_000);
 });

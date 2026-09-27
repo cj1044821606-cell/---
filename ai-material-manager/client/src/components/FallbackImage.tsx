@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+import React, { useMemo, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export interface FallbackImageProps {
   /** 按优先级排列的候选地址；空值会被忽略，前一个加载失败自动换下一个 */
@@ -25,28 +25,25 @@ const FallbackImage: React.FC<FallbackImageProps> = ({
   placeholder,
   priority = false,
   className,
-  skeletonClassName = "inset-0",
+  skeletonClassName = 'inset-0',
   style,
 }) => {
   const candidates: string[] = useMemo(
     (): string[] =>
       sources.filter(
         (value, index): value is string =>
-          typeof value === "string" && value !== "" && sources.indexOf(value) === index,
+          typeof value === 'string' &&
+          value !== '' &&
+          sources.indexOf(value) === index,
       ),
     // 以内容而非数组引用判断是否变化，避免父组件每次渲染都重置加载状态
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sources.join("\n")],
+    [sources.join('\n')],
   );
-  const [index, setIndex] = useState<number>(0);
-  const [loaded, setLoaded] = useState<boolean>(false);
-
-  useEffect(() => {
-    setIndex(0);
-    setLoaded(false);
-  }, [candidates]);
-
-  const src: string | undefined = candidates[index];
+  const [failed, setFailed] = useState<string[]>([]);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const src = candidates.find((candidate) => !failed.includes(candidate));
+  const loaded = src === loadedSrc;
   if (src === undefined) return <>{placeholder}</>;
 
   return (
@@ -54,25 +51,27 @@ const FallbackImage: React.FC<FallbackImageProps> = ({
       {!loaded ? (
         <div
           aria-hidden="true"
-          className={cn("absolute animate-pulse rounded-md bg-accent", skeletonClassName)}
+          className={cn(
+            'absolute animate-pulse rounded-md bg-accent',
+            skeletonClassName,
+          )}
         />
       ) : null}
       <img
         key={src}
         src={src}
         alt={alt}
-        loading={priority ? "eager" : "lazy"}
-        fetchPriority={priority ? "high" : "auto"}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
         decoding="async"
         draggable={false}
-        onLoad={(): void => setLoaded(true)}
+        onLoad={(): void => setLoadedSrc(src)}
         onError={(): void => {
-          setLoaded(false);
-          setIndex((current: number): number => current + 1);
+          setFailed((current) => [...current, src]);
         }}
         className={cn(
-          "transition-opacity duration-180 ease-out",
-          loaded ? "opacity-100" : "opacity-0",
+          'transition-opacity duration-180 ease-out',
+          loaded ? 'opacity-100' : 'opacity-0',
           className,
         )}
         style={style}

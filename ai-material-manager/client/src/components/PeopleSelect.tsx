@@ -1,16 +1,28 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown, LoaderCircle, Search, User, X } from "lucide-react";
-import { axiosForBackend } from "@client/src/lib/api-client";
-import { Avatar, AvatarFallback, AvatarImage } from "@client/src/components/ui/avatar";
-import { Button } from "@client/src/components/ui/button";
-import { Checkbox } from "@client/src/components/ui/checkbox";
-import { Input } from "@client/src/components/ui/input";
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Check,
+  ChevronsUpDown,
+  LoaderCircle,
+  Search,
+  User,
+  X,
+} from 'lucide-react';
+import { axiosForBackend } from '@client/src/lib/api-client';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@client/src/components/ui/avatar';
+import { Button } from '@client/src/components/ui/button';
+import { Checkbox } from '@client/src/components/ui/checkbox';
+import { Input } from '@client/src/components/ui/input';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@client/src/components/ui/popover";
-import { cn } from "@client/src/lib/utils";
+} from '@client/src/components/ui/popover';
+import { cn } from '@client/src/lib/utils';
+import { useI18n } from '@client/src/hooks/use-i18n';
 
 interface PersonOption {
   openId: string;
@@ -18,14 +30,34 @@ interface PersonOption {
   roleText: string;
   area: string | null;
   avatarUrl: string | null;
+  departmentName?: string;
 }
 
 let peoplePromise: Promise<PersonOption[]> | null = null;
+const knownPeople = new Map<string, PersonOption>();
+function remember(items: PersonOption[]): PersonOption[] {
+  items.forEach((person) => knownPeople.set(person.openId, person));
+  return items;
+}
+
+async function resolvePeople(ids: string[]): Promise<PersonOption[]> {
+  const missing = ids.filter((id) => !knownPeople.has(id));
+  for (let offset = 0; offset < missing.length; offset += 20) {
+    const response = await axiosForBackend.get<{ items: PersonOption[] }>(
+      '/api/people/resolve',
+      { params: { ids: missing.slice(offset, offset + 20).join(',') } },
+    );
+    remember(response.data.items);
+  }
+  return ids.flatMap((id) =>
+    knownPeople.has(id) ? [knownPeople.get(id)!] : [],
+  );
+}
 
 function getPeople(): Promise<PersonOption[]> {
   peoplePromise ??= axiosForBackend
-    .get<{ items: PersonOption[] }>("/api/people/options")
-    .then((response) => response.data.items)
+    .get<{ items: PersonOption[] }>('/api/people/options')
+    .then((response) => remember(response.data.items))
     .catch((error) => {
       peoplePromise = null;
       throw error;
@@ -36,7 +68,7 @@ function getPeople(): Promise<PersonOption[]> {
 interface CommonPeopleSelectProps {
   disabled?: boolean;
   placeholder?: string;
-  candidateType?: "all" | "designer" | "plannerAuditor";
+  candidateType?: 'all' | 'designer' | 'plannerAuditor';
 }
 
 type PeopleSelectProps = CommonPeopleSelectProps &
@@ -55,25 +87,27 @@ type PeopleSelectProps = CommonPeopleSelectProps &
 
 function isCandidate(
   person: PersonOption,
-  candidateType: NonNullable<CommonPeopleSelectProps["candidateType"]>,
+  candidateType: NonNullable<CommonPeopleSelectProps['candidateType']>,
 ): boolean {
-  if (candidateType === "all") return true;
-  if (candidateType === "designer") {
-    return person.roleText.includes("设计师");
+  if (candidateType === 'all') return true;
+  if (candidateType === 'designer') {
+    return person.roleText.includes('设计师');
   }
-  const isAuditor = person.roleText.includes("审核");
+  const isAuditor = person.roleText.includes('审核');
   const isMarketing =
-    person.roleText.includes("市场营销") ||
-    person.roleText.includes("Marketing");
-  const isHeadquarters = person.area?.split("-")[0] === "HQ";
+    person.roleText.includes('市场营销') ||
+    person.roleText.includes('Marketing');
+  const isHeadquarters = person.area?.split('-')[0] === 'HQ';
   return isAuditor || (isMarketing && isHeadquarters);
 }
 
 export function PeopleSelect(props: PeopleSelectProps) {
+  const { language } = useI18n();
+  const en = language === 'en';
   const {
     disabled = false,
-    placeholder = "请选择",
-    candidateType = "all",
+    placeholder = '请选择',
+    candidateType = 'all',
   } = props;
   const multiple = props.multiple === true;
   const selectedIds: string[] = multiple
@@ -84,7 +118,15 @@ export function PeopleSelect(props: PeopleSelectProps) {
   const [items, setItems] = useState<PersonOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
+  const [searchItems, setSearchItems] = useState<PersonOption[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [pageToken, setPageToken] = useState<string | undefined>();
+  const [hasMore, setHasMore] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [page, setPage] = useState<string | undefined>();
+  const selectedKey = selectedIds.join(',');
 
   useEffect(() => {
     getPeople()
@@ -93,6 +135,73 @@ export function PeopleSelect(props: PeopleSelectProps) {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    if (selectedKey)
+      void resolvePeople(selectedKey.split(','))
+        .then((resolved) => {
+          if (active)
+            setItems((previous) => [
+              ...new Map(
+                [...previous, ...resolved].map((person) => [
+                  person.openId,
+                  person,
+                ]),
+              ).values(),
+            ]);
+        })
+        .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [selectedKey]);
+
+  useEffect(() => {
+    if (!open || !query.trim()) return;
+    const controller = new AbortController();
+    setSearching(true);
+    setSearchError(null);
+    const timer = window.setTimeout(() => {
+      axiosForBackend
+        .get<{ items: PersonOption[]; hasMore?: boolean; pageToken?: string }>(
+          '/api/people/options',
+          {
+            params: { q: query.trim(), pageToken: page },
+            signal: controller.signal,
+          },
+        )
+        .then(({ data }) => {
+          if (controller.signal.aborted) return;
+          remember(data.items);
+          setSearchItems((previous) => [
+            ...new Map(
+              [...(page ? previous : []), ...data.items].map((person) => [
+                person.openId,
+                person,
+              ]),
+            ).values(),
+          ]);
+          setPageToken(data.pageToken);
+          setHasMore(Boolean(data.hasMore && data.pageToken));
+        })
+        .catch(() => {
+          if (!controller.signal.aborted)
+            setSearchError(
+              en
+                ? 'Organization search unavailable. Ask an administrator to check directory access, or retry.'
+                : '组织搜索暂不可用，请重试或联系管理员检查通讯录搜索权限。',
+            );
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setSearching(false);
+        });
+    }, 300);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [open, query, page, retry, en]);
+
   const candidates = useMemo(
     () => items.filter((person) => isCandidate(person, candidateType)),
     [candidateType, items],
@@ -100,14 +209,20 @@ export function PeopleSelect(props: PeopleSelectProps) {
   const filtered = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase();
     if (!keyword) return candidates;
-    return candidates.filter((person) =>
-      [person.label, person.roleText, person.area]
-        .filter(Boolean)
-        .some((value) => value!.toLocaleLowerCase().includes(keyword)),
-    );
-  }, [candidates, query]);
+    return searchItems;
+  }, [candidates, query, searchItems]);
   const selectedPeople = selectedIds
-    .map((id) => items.find((person) => person.openId === id))
+    .map(
+      (id) =>
+        knownPeople.get(id) ??
+        items.find((person) => person.openId === id) ?? {
+          openId: id,
+          label: en ? 'Selected member' : '已选成员',
+          roleText: '',
+          area: null,
+          avatarUrl: null,
+        },
+    )
     .filter((person): person is PersonOption => Boolean(person));
 
   const togglePerson = (openId: string): void => {
@@ -131,7 +246,7 @@ export function PeopleSelect(props: PeopleSelectProps) {
   };
 
   const triggerText = selectedPeople.length
-    ? selectedPeople.map((person) => person.label).join("、")
+    ? selectedPeople.map((person) => person.label).join('、')
     : placeholder;
 
   return (
@@ -140,7 +255,7 @@ export function PeopleSelect(props: PeopleSelectProps) {
         open={open}
         onOpenChange={(next) => {
           setOpen(next);
-          if (!next) setQuery("");
+          if (!next) setQuery('');
         }}
       >
         <PopoverTrigger asChild>
@@ -154,8 +269,8 @@ export function PeopleSelect(props: PeopleSelectProps) {
           >
             <span
               className={cn(
-                "min-w-0 flex-1 truncate text-left",
-                selectedPeople.length === 0 && "text-muted-foreground",
+                'min-w-0 flex-1 truncate text-left',
+                selectedPeople.length === 0 && 'text-muted-foreground',
               )}
             >
               {triggerText}
@@ -177,21 +292,44 @@ export function PeopleSelect(props: PeopleSelectProps) {
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="搜索姓名、角色或区域"
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setSearchItems([]);
+                  setPage(undefined);
+                  setHasMore(false);
+                  setSearchError(null);
+                }}
+                placeholder={
+                  en ? 'Search organization members' : '搜索组织成员姓名'
+                }
+                aria-label={
+                  en ? 'Search organization members' : '搜索组织成员姓名'
+                }
                 className="h-9 pl-8"
               />
             </div>
           </div>
           <div className="max-h-72 overflow-y-auto p-1.5">
-            {loading ? (
+            {loading || (query.trim() && searching) ? (
               <div className="flex h-20 items-center justify-center text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
               </div>
             ) : null}
-            {!loading && filtered.length === 0 ? (
+            {searchError && query.trim() ? (
+              <div role="alert" className="px-3 py-2 text-xs text-destructive">
+                {searchError}
+                <button
+                  type="button"
+                  className="ml-2 underline"
+                  onClick={() => setRetry((value) => value + 1)}
+                >
+                  {en ? 'Retry' : '重试'}
+                </button>
+              </div>
+            ) : null}
+            {!loading && !searching && !searchError && filtered.length === 0 ? (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                没有匹配的人员
+                {en ? 'No matching members' : '没有匹配的人员'}
               </p>
             ) : null}
             {filtered.map((person) => {
@@ -208,8 +346,8 @@ export function PeopleSelect(props: PeopleSelectProps) {
                   ) : (
                     <Check
                       className={cn(
-                        "size-4 shrink-0",
-                        checked ? "opacity-100" : "opacity-0",
+                        'size-4 shrink-0',
+                        checked ? 'opacity-100' : 'opacity-0',
                       )}
                     />
                   )}
@@ -218,7 +356,9 @@ export function PeopleSelect(props: PeopleSelectProps) {
                       <AvatarImage src={person.avatarUrl} alt={person.label} />
                     ) : null}
                     <AvatarFallback className="text-xs">
-                      {person.label.slice(0, 1) || <User className="size-3.5" />}
+                      {person.label.slice(0, 1) || (
+                        <User className="size-3.5" />
+                      )}
                     </AvatarFallback>
                   </Avatar>
                   <span className="min-w-0 flex-1">
@@ -226,12 +366,25 @@ export function PeopleSelect(props: PeopleSelectProps) {
                       {person.label}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {[person.area, person.roleText].filter(Boolean).join(" · ")}
+                      {[person.departmentName, person.area, person.roleText]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </span>
                   </span>
                 </button>
               );
             })}
+            {query.trim() && hasMore ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                disabled={searching}
+                onClick={() => setPage(pageToken)}
+              >
+                {en ? 'Load more' : '加载更多'}
+              </Button>
+            ) : null}
           </div>
         </PopoverContent>
       </Popover>
@@ -265,7 +418,7 @@ export function PeopleSelect(props: PeopleSelectProps) {
 export function PeopleName({ openId }: { openId: string }) {
   const [name, setName] = useState(openId);
   useEffect(() => {
-    getPeople()
+    resolvePeople([openId])
       .then((items) => {
         setName(items.find((item) => item.openId === openId)?.label ?? openId);
       })

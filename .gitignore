@@ -36,6 +36,7 @@ coverage/
 .agent-memory/
 **/.agent-memory/
 **/var/
+ai-material-manager/runtime/
 **/.drive_upload_work/
 **/.product_page_staging_work/
 **/.datasheet_master_work/

@@ -13,7 +13,7 @@ import type {
 } from "@shared/api.interface";
 import { extractLinkRecordIds } from "@server/common/utils/bitable-link.util";
 import { FilesService } from "@server/modules/files/files.service";
-import { ThumbnailService } from "@server/modules/files/thumbnail.service";
+import { ThumbnailService, selectPreviewSource } from "@server/modules/files/thumbnail.service";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
 import {
   buildPoolProgressMap,
@@ -26,6 +26,7 @@ interface MaterialRow extends Record<string, unknown> {
   standardName: string | null;
   previewFileS: string[];
   coverImage: string[];
+  currentValidAttachment: string[];
   currentVersion: string | null;
   releaseStatus: string | null;
   plannerApprover: string | null;
@@ -114,7 +115,7 @@ export class MyService {
         userId,
       ),
       thumbUrl: this.thumbnails.makeThumbUrl(
-        row.previewFileS[0] ?? row.coverImage[0],
+        selectPreviewSource([...row.previewFileS, ...row.coverImage, ...(row.currentValidAttachment ?? [])]),
         userId,
       ),
       currentVersion: row.currentVersion ?? "",

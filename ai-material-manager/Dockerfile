@@ -9,6 +9,7 @@ FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=builder /app/package.json /app/package-lock.json ./
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils fonts-noto-cjk && apt-get clean
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 RUN mkdir -p /data/uploads && chown -R node:node /app /data/uploads

@@ -196,6 +196,9 @@
   },
   "jest": {
     "preset": "ts-jest",
+    "transform": {
+      "^.+\\.tsx?$": ["ts-jest", { "tsconfig": "tsconfig.node.json" }]
+    },
     "testEnvironment": "node",
     "testMatch": [
       "<rootDir>/server/**/*.spec.ts",

@@ -1,43 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Download,
-  Eye,
-  ExternalLink,
-  FileText,
-  Loader2,
-  Palette,
-} from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 
-import type { MaterialDetail, VersionItem } from "@shared/material";
-import type { MaterialStatusLabel } from "@shared/status";
-import type { SystemSettings } from "@shared/settings";
+import type { MaterialDetail } from "@shared/material";
 import type { DeliverableFile } from "@shared/files";
 import FallbackImage from "@client/src/components/FallbackImage";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import { createMaterialDetailPt } from "./material-detail-i18n";
 import { getMaterialFiles } from "@client/src/api/files";
-import { triggerDownload } from "@client/src/utils/download";
 import { getTypeArt } from "./material-detail-utils";
+import MaterialFileList from "./MaterialFileList";
 
 interface MaterialVisualActionsProps {
   material: MaterialDetail;
   roles: string[];
 }
-
-const FILE_KIND_ICONS: Record<
-  DeliverableFile["kind"],
-  React.ComponentType<{ size?: number; className?: string }>
-> = {
-  M: FileText,
-  L: Palette,
-  S: Eye,
-};
-
-const TIER_LABELS: Record<string, string> = {
-  M: "导出件 M",
-  L: "源文件 L",
-  S: "预览 S",
-};
 
 const SOURCE_FILE_ROLES: string[] = ["设计师", "策划", "维护者"];
 
@@ -141,53 +117,7 @@ const MaterialVisualActions: React.FC<MaterialVisualActionsProps> = ({
             <Loader2 className="size-4 animate-spin text-muted-foreground" />
           </div>
         ) : visibleFiles.length > 0 ? (
-          <div className="space-y-1">
-            {visibleFiles.map((file: DeliverableFile, index: number) => {
-              const KindIcon = FILE_KIND_ICONS[file.kind];
-              const handleClick = (): void => {
-                if (file.delivery === "external") {
-                  window.open(file.url, "_blank", "noopener");
-                } else {
-                  triggerDownload(file.url, file.fileName);
-                }
-              };
-              return (
-                <button
-                  key={`${file.kind}-${index}`}
-                  onClick={handleClick}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-accent"
-                >
-                  <span className="flex size-[34px] shrink-0 items-center justify-center rounded-md bg-accent text-accent-foreground">
-                    <KindIcon size={16} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">
-                      {TIER_LABELS[file.kind]}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {file.fileName}
-                    </p>
-                  </div>
-                  {file.delivery === "external" ? (
-                    <ExternalLink
-                      size={15}
-                      className="shrink-0 text-muted-foreground"
-                    />
-                  ) : file.kind === "S" ? (
-                    <Eye
-                      size={15}
-                      className="shrink-0 text-muted-foreground"
-                    />
-                  ) : (
-                    <Download
-                      size={15}
-                      className="shrink-0 text-muted-foreground"
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <MaterialFileList files={visibleFiles} language={language} />
         ) : (
           <p className="text-xs text-muted-foreground">{pt("files.empty")}</p>
         )}
