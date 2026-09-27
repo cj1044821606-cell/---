@@ -44,3 +44,6 @@ jobs:
 
       - name: Build production container
         run: docker build -t ai-material-manager:ci .
+
+      - name: Check production runtime dependencies
+        run: docker run --rm ai-material-manager:ci node -e "require('./dist/server/app.module.js')"
