@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
+  Bot,
   Check,
   ChevronDown,
   Inbox,
@@ -45,6 +46,13 @@ import { useSystemSettings } from "@client/src/hooks/use-system-settings";
 import GroupGuideDialog, {
   hasJoinedGroup,
 } from "@client/src/components/GroupGuideDialog";
+import AgentTutorialDialog from "@client/src/components/agent-tutorial/AgentTutorialDialog";
+import { TUTORIAL_I18N } from "@client/src/components/agent-tutorial/tutorial-i18n";
+import {
+  flyIntoLauncher,
+  hasSeenAgentTutorial,
+  markAgentTutorialSeen,
+} from "@client/src/components/agent-tutorial/tutorial-state";
 import { useScrollRestoration } from "@client/src/hooks/use-scroll-restoration";
 import { preloadPage, type PageName } from "@client/src/lib/page-loaders";
 import { cn } from "@/lib/utils";
@@ -75,13 +83,112 @@ const Layout: React.FC = () => {
   const settings = useSystemSettings();
   const [logoutOpen, setLogoutOpen] = useState<boolean>(false);
   const [guideOpen, setGuideOpen] = useState<boolean>(false);
+  // 入群引导处理完（不需要或已关闭）后，才轮到 Codex 教程，避免两个弹窗叠在一起
+  const [guideSettled, setGuideSettled] = useState<boolean>(false);
+  const [tutorialOpen, setTutorialOpen] = useState<boolean>(false);
+  const [launcherPulse, setLauncherPulse] = useState<boolean>(false);
+  const [parkedHint, setParkedHint] = useState<boolean>(false);
+  const tutorialAutoShown = useRef<boolean>(false);
+  const desktopLauncherRef = useRef<HTMLButtonElement>(null);
+  const mobileLauncherRef = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
+  const tt = (key: string): string =>
+    TUTORIAL_I18N[key]?.[language] ?? t(key);
+  // 访客没有业务数据权限，不提供 AI 助手接入，也就不需要教程
+  const canUseAgent: boolean = identity !== null && !identity.isVisitor;
   useScrollRestoration();
 
   useEffect(() => {
-    if (identity?.isUploadRole && !hasJoinedGroup()) {
+    if (!identity) return;
+    if (identity.isUploadRole && !hasJoinedGroup()) {
       setGuideOpen(true);
+    } else {
+      setGuideSettled(true);
     }
   }, [identity]);
+
+  const onGuideOpenChange = (open: boolean): void => {
+    setGuideOpen(open);
+    if (!open) setGuideSettled(true);
+  };
+
+  useEffect(() => {
+    if (!guideSettled || !canUseAgent || tutorialAutoShown.current) return;
+    if (hasSeenAgentTutorial()) return;
+    tutorialAutoShown.current = true;
+    const timer = window.setTimeout(() => setTutorialOpen(true), 500);
+    return () => window.clearTimeout(timer);
+  }, [guideSettled, canUseAgent]);
+
+  /** 关闭教程：弹窗缩小飞进入口图标，图标闪一下；第一次还会提示“教程收在这里” */
+  const parkTutorial = (rect: DOMRect | null): void => {
+    const firstTime = !hasSeenAgentTutorial();
+    markAgentTutorialSeen();
+    setTutorialOpen(false);
+    const visibleLauncher =
+      [desktopLauncherRef.current, mobileLauncherRef.current].find(
+        (el) => el !== null && el.getBoundingClientRect().width > 0,
+      ) ?? null;
+    flyIntoLauncher(rect, visibleLauncher, () => {
+      setLauncherPulse(true);
+      window.setTimeout(() => setLauncherPulse(false), 1600);
+      if (firstTime) {
+        setParkedHint(true);
+        window.setTimeout(() => setParkedHint(false), 4500);
+      }
+    });
+  };
+
+  const onTutorialGoCreate = (rect: DOMRect | null): void => {
+    parkTutorial(rect);
+    navigate("/more");
+    // 等“更多”页渲染出令牌卡片后再滚过去
+    window.setTimeout(() => {
+      document
+        .getElementById("agent-access")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 400);
+  };
+
+  const launcherButton = (
+    ref: React.RefObject<HTMLButtonElement | null>,
+    className: string,
+    hintClassName: string,
+  ): React.ReactNode => (
+    <div className={cn("relative", className)}>
+      <button
+        ref={ref}
+        type="button"
+        aria-label={tt("tutorial.launcher")}
+        title={tt("tutorial.launcher")}
+        onClick={() => {
+          setParkedHint(false);
+          setTutorialOpen(true);
+        }}
+        className="relative grid size-9 place-items-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/40"
+      >
+        <Bot className="size-[18px]" />
+        <span className="absolute right-1 top-1 size-1.5 rounded-full bg-primary ring-2 ring-card" />
+        {launcherPulse ? (
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 animate-ping rounded-lg bg-primary/25"
+          />
+        ) : null}
+      </button>
+      {parkedHint ? (
+        <div
+          role="status"
+          className={cn(
+            "animate-in fade-in-0 zoom-in-95 absolute z-50 w-max max-w-[14rem] rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background shadow-lg duration-200",
+            hintClassName,
+          )}
+        >
+          {tt("tutorial.parked")}
+        </div>
+      ) : null}
+    </div>
+  );
 
   const handleLogout = async (): Promise<void> => {
     try {
@@ -175,6 +282,13 @@ const Layout: React.FC = () => {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
+          {canUseAgent
+            ? launcherButton(
+                desktopLauncherRef,
+                "",
+                "right-0 top-[calc(100%+8px)]",
+              )
+            : null}
           <DropdownMenu>
             <DropdownMenuTrigger className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/40">
               <Languages className="size-4" />
@@ -213,6 +327,14 @@ const Layout: React.FC = () => {
           <Outlet />
         </div>
       </main>
+
+      {canUseAgent
+        ? launcherButton(
+            mobileLauncherRef,
+            "fixed right-4 bottom-[calc(7.75rem+env(safe-area-inset-bottom))] z-30 rounded-lg border border-border bg-card shadow-md md:hidden",
+            "right-[calc(100%+8px)] top-1/2 -translate-y-1/2",
+          )
+        : null}
 
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
         {NAV_ITEMS.map((item: NavItem) => (
@@ -264,9 +386,16 @@ const Layout: React.FC = () => {
       </AlertDialog>
       <GroupGuideDialog
         open={guideOpen}
-        onOpenChange={setGuideOpen}
+        onOpenChange={onGuideOpenChange}
         settings={settings}
       />
+      {canUseAgent ? (
+        <AgentTutorialDialog
+          open={tutorialOpen}
+          onClose={parkTutorial}
+          onGoCreate={onTutorialGoCreate}
+        />
+      ) : null}
     </div>
   );
 };

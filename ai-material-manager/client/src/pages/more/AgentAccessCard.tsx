@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import dayjs from "dayjs";
-import { Bot, Check, Copy, Download, KeyRound, Trash2 } from "lucide-react";
+import { Bot, Download, KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -11,6 +11,7 @@ import {
   listAgentTokens,
   revokeAgentToken,
 } from "@client/src/api/agent";
+import SharedCopyBlock from "@client/src/components/CopyBlock";
 import { Button } from "@client/src/components/ui/button";
 import {
   Card,
@@ -28,8 +29,11 @@ import {
 } from "@client/src/components/ui/tabs";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import {
+  AGENT_TOKEN_PLACEHOLDER,
+  buildAgentConfigs,
+} from "@client/src/lib/agent-config";
+import {
   AGENT_TOKEN_TTL_OPTIONS,
-  type AgentConnectionInfo,
   type AgentTokenItem,
   type AgentTokenTtlDays,
 } from "@shared/agent";
@@ -37,25 +41,6 @@ import { AGENT_I18N } from "./agent-i18n";
 
 const TOKENS_QUERY_KEY = ["agent-tokens"] as const;
 const CONNECTION_QUERY_KEY = ["agent-connection"] as const;
-const TOKEN_PLACEHOLDER = "<你的令牌>";
-
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    // 非 HTTPS 或权限受限时退回到选区复制
-    const area = document.createElement("textarea");
-    area.value = text;
-    area.style.position = "fixed";
-    area.style.opacity = "0";
-    document.body.appendChild(area);
-    area.select();
-    const ok = document.execCommand("copy");
-    area.remove();
-    return ok;
-  }
-}
 
 function serverMessage(error: unknown): string | null {
   if (axios.isAxiosError(error)) {
@@ -65,86 +50,21 @@ function serverMessage(error: unknown): string | null {
   return null;
 }
 
-function buildConfigs(
-  info: AgentConnectionInfo,
-  token: string,
-): { claudeCode: string; claudeDesktop: string; generic: string } {
-  const name = info.serverName;
-  return {
-    claudeCode: `claude mcp add --transport http ${name} ${info.mcpUrl} --header "Authorization: Bearer ${token}"`,
-    claudeDesktop: JSON.stringify(
-      {
-        mcpServers: {
-          [name]: {
-            command: "npx",
-            args: [
-              "-y",
-              "mcp-remote",
-              info.mcpUrl,
-              "--header",
-              "Authorization:${AUTH_HEADER}",
-            ],
-            env: { AUTH_HEADER: `Bearer ${token}` },
-          },
-        },
-      },
-      null,
-      2,
-    ),
-    generic: JSON.stringify(
-      {
-        mcpServers: {
-          [name]: {
-            url: info.mcpUrl,
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        },
-      },
-      null,
-      2,
-    ),
-  };
-}
-
 const CopyBlock: React.FC<{
   text: string;
   hint?: string;
   pt: (key: string) => string;
-}> = ({ text, hint, pt }) => {
-  const [copied, setCopied] = useState<boolean>(false);
-  const onCopy = async (): Promise<void> => {
-    if (await copyText(text)) {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } else {
-      toast.error(pt("agent.copyFailed"));
-    }
-  };
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-end justify-between gap-3">
-        <p className="min-w-0 text-xs text-muted-foreground">{hint ?? ""}</p>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 shrink-0 px-2 text-xs"
-          onClick={() => void onCopy()}
-        >
-          {copied ? (
-            <Check className="size-3.5 text-success" />
-          ) : (
-            <Copy className="size-3.5" />
-          )}
-          {copied ? pt("agent.copied") : pt("agent.copy")}
-        </Button>
-      </div>
-      <pre className="max-h-56 overflow-auto rounded-md border border-border bg-accent/40 p-3 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap text-foreground">
-        {text}
-      </pre>
-    </div>
-  );
-};
+}> = ({ text, hint, pt }) => (
+  <SharedCopyBlock
+    text={text}
+    hint={hint}
+    labels={{
+      copy: pt("agent.copy"),
+      copied: pt("agent.copied"),
+      failed: pt("agent.copyFailed"),
+    }}
+  />
+);
 
 export const AgentAccessCard: React.FC = () => {
   const { language, t } = useI18n();
@@ -191,7 +111,7 @@ export const AgentAccessCard: React.FC = () => {
   const configs = useMemo(
     () =>
       connection.data
-        ? buildConfigs(connection.data, freshToken ?? TOKEN_PLACEHOLDER)
+        ? buildAgentConfigs(connection.data, freshToken ?? AGENT_TOKEN_PLACEHOLDER)
         : null,
     [connection.data, freshToken],
   );
@@ -215,7 +135,7 @@ export const AgentAccessCard: React.FC = () => {
   };
 
   return (
-    <Card>
+    <Card id="agent-access" className="scroll-mt-20">
       <CardHeader className="p-4 pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Bot className="size-4 text-primary" />
@@ -314,12 +234,20 @@ export const AgentAccessCard: React.FC = () => {
                 {pt("agent.config.placeholder")}
               </p>
             ) : null}
-            <Tabs defaultValue="claudeCode">
-              <TabsList className="flex-wrap">
+            <Tabs defaultValue="codex">
+              <TabsList className="h-auto flex-wrap gap-y-0">
+                <TabsTrigger value="codex">Codex</TabsTrigger>
                 <TabsTrigger value="claudeCode">Claude Code</TabsTrigger>
                 <TabsTrigger value="claudeDesktop">Claude Desktop</TabsTrigger>
                 <TabsTrigger value="generic">Cursor / JSON</TabsTrigger>
               </TabsList>
+              <TabsContent value="codex">
+                <CopyBlock
+                  text={configs.codex}
+                  hint={pt("agent.config.codex")}
+                  pt={pt}
+                />
+              </TabsContent>
               <TabsContent value="claudeCode">
                 <CopyBlock
                   text={configs.claudeCode}
