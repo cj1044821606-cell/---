@@ -77,6 +77,8 @@ export const MORE_I18N: Record<string, { zh: string; en: string }> = {
   "more.group.notJoined": { zh: "未加入", en: "Not joined" },
   "more.group.view": { zh: "查看群二维码", en: "View group QR" },
   "more.group.expiry": { zh: "二维码有效期至", en: "QR valid until" },
+  "more.group.expired": { zh: "二维码已过期，请联系维护者更新", en: "QR code expired. Contact a maintainer." },
+  "more.group.unavailable": { zh: "二维码暂不可用，请联系维护者", en: "QR code unavailable. Contact a maintainer." },
   "more.group.internal": {
     zh: "仅限企业内部成员",
     en: "Internal members only",
@@ -95,6 +97,7 @@ export const MORE_I18N: Record<string, { zh: string; en: string }> = {
     zh: "群二维码即将到期（≤3 天），请尽快在系统配置中更新",
     en: "Group QR expires within 3 days — update it in system config",
   },
+  "more.ops.qr.expired": { zh: "群二维码已过期，请立即更新", en: "Group QR expired — replace it now" },
   "more.ops.qr.ok": { zh: "二维码有效，暂未临期", en: "QR valid, not expiring" },
   "more.ops.qr.none": { zh: "未配置群二维码", en: "No group QR configured" },
   "more.ops.qr.expiry": { zh: "有效期至", en: "Valid until" },

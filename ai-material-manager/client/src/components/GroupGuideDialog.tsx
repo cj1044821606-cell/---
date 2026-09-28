@@ -48,8 +48,13 @@ const GroupGuideDialog: React.FC<GroupGuideDialogProps> = ({
   settings,
 }) => {
   const { t } = useI18n();
+  const qrAvailable =
+    Boolean(settings?.groupQrUrl) &&
+    (settings?.groupQrStatus === "available" ||
+      settings?.groupQrStatus === "expiring");
 
   const handleConfirm = (): void => {
+    if (!qrAvailable) return;
     markGroupJoined();
     onOpenChange(false);
   };
@@ -80,29 +85,35 @@ const GroupGuideDialog: React.FC<GroupGuideDialogProps> = ({
             ) : (
               <div className="flex h-[180px] w-[180px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border text-center text-xs text-muted-foreground">
                 <QrCode className="size-8 text-muted-foreground/60" />
-                {t("groupGuide.qrFallback")}
+                {t(
+                  settings?.groupQrStatus === "expired"
+                    ? "groupGuide.qrExpired"
+                    : "groupGuide.qrFallback",
+                )}
               </div>
             )}
           </div>
 
-          <ol className="space-y-1.5">
-            {GUIDE_STEPS.map((stepKey: string, index: number) => (
-              <li key={stepKey} className="flex items-start gap-2">
-                <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary">
-                  {index + 1}
-                </span>
-                <span className="text-muted-foreground">{t(stepKey)}</span>
-              </li>
-            ))}
-          </ol>
+          {qrAvailable ? (
+            <ol className="space-y-1.5">
+              {GUIDE_STEPS.map((stepKey: string, index: number) => (
+                <li key={stepKey} className="flex items-start gap-2">
+                  <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary">
+                    {index + 1}
+                  </span>
+                  <span className="text-muted-foreground">{t(stepKey)}</span>
+                </li>
+              ))}
+            </ol>
+          ) : null}
 
           <p className="rounded-md bg-warning-soft px-3 py-2 text-sm leading-relaxed text-warning-text">
             {t("groupGuide.fileReminder")}
           </p>
 
-          <Button className="w-full" onClick={handleConfirm}>
+          <Button className="w-full" onClick={handleConfirm} disabled={!qrAvailable}>
             <CheckCircle2 className="size-4" />
-            {t("groupGuide.confirm")}
+            {t(qrAvailable ? "groupGuide.confirm" : "groupGuide.unavailable")}
           </Button>
         </div>
       </DialogContent>

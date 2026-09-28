@@ -221,6 +221,15 @@ export const MoreQuickReference: React.FC = () => {
               {pt("more.group.desc")}
             </span>
             <div className="flex flex-wrap items-center gap-2">
+              {settings?.groupQrStatus === "expired" ? (
+                <span className="text-xs text-destructive">
+                  {pt("more.group.expired")}
+                </span>
+              ) : settings?.groupQrStatus === "unavailable" ? (
+                <span className="text-xs text-warning-text">
+                  {pt("more.group.unavailable")}
+                </span>
+              ) : null}
               {expiryText ? (
                 <span className="font-mono text-xs text-muted-foreground">
                   {pt("more.group.expiry")} {expiryText} ·{" "}
