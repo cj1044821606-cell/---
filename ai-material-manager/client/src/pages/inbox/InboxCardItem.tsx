@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
+  Check,
   ChevronDown,
   Cpu,
   ExternalLink,
@@ -17,6 +18,9 @@ import {
 import type { InboxCard, InboxCardField, InboxCardType } from "@shared/inbox";
 import { Badge } from "@client/src/components/ui/badge";
 import { Button } from "@client/src/components/ui/button";
+import { acknowledgeVersionReplaced } from "@client/src/api/inbox";
+import { useInbox } from "@client/src/inbox/inbox-provider";
+import { toast } from "sonner";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import ProgressTracker from "@client/src/components/ProgressTracker";
 import InboxCardActions from "./InboxCardActions";
@@ -42,6 +46,8 @@ interface InboxCardItemProps {
 const InboxCardItem: React.FC<InboxCardItemProps> = ({ card, priority }) => {
   const { language, t } = useI18n();
   const [expanded, setExpanded] = useState<boolean>(false);
+  const [acknowledging, setAcknowledging] = useState(false);
+  const { refresh } = useInbox();
 
   const pt = (key: string): string => INBOX_I18N[key]?.[language] ?? t(key);
   const resolve = (key: string, fallback: string): string => {
@@ -61,10 +67,25 @@ const InboxCardItem: React.FC<InboxCardItemProps> = ({ card, priority }) => {
     setExpanded((prev: boolean) => !prev);
   };
 
+  const acknowledge = async (): Promise<void> => {
+    setAcknowledging(true);
+    try {
+      await acknowledgeVersionReplaced(card.recordId);
+      toast.success(pt("inbox.action.acknowledgeDone"));
+      await refresh();
+    } catch {
+      toast.error(pt("inbox.action.failed"));
+    } finally {
+      setAcknowledging(false);
+    }
+  };
+
   return (
     <div
       className={`overflow-hidden rounded-xl border bg-card shadow-sm transition-[transform,box-shadow,border-color] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-strong hover:shadow-lg ${
-        priority ? "border-l-[3px] border-l-destructive border-border" : "border-border"
+        priority
+          ? "border-l-[3px] border-l-destructive border-border"
+          : "border-border"
       }`}
     >
       <button
@@ -75,7 +96,9 @@ const InboxCardItem: React.FC<InboxCardItemProps> = ({ card, priority }) => {
       >
         <span
           className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
-            priority ? "bg-danger-soft text-danger-text" : "bg-accent text-accent-foreground"
+            priority
+              ? "bg-danger-soft text-danger-text"
+              : "bg-accent text-accent-foreground"
           }`}
         >
           <Icon className="size-4" />
@@ -152,12 +175,37 @@ const InboxCardItem: React.FC<InboxCardItemProps> = ({ card, priority }) => {
                 ))}
               </div>
             ) : null}
-            <a href={card.deepLink} target="_blank" rel="noreferrer">
-              <Button size="sm" variant={inlineAction ? "ghost" : "default"}>
-                {inlineAction ? pt("inbox.action.orInBase") : cta}
-                <ExternalLink className="size-3.5" />
+            <div className="flex flex-wrap items-center gap-2">
+              {card.type === "versionReplaced" && card.recordId ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={acknowledging}
+                  onClick={() => void acknowledge()}
+                >
+                  {acknowledging ? (
+                    <Loader className="size-3.5 animate-spin" />
+                  ) : (
+                    <Check className="size-3.5" />
+                  )}
+                  {pt("inbox.action.acknowledge")}
+                </Button>
+              ) : null}
+              <Button
+                asChild
+                size="sm"
+                variant={
+                  inlineAction || card.type === "versionReplaced"
+                    ? "outline"
+                    : "default"
+                }
+              >
+                <a href={card.deepLink} target="_blank" rel="noreferrer">
+                  {inlineAction ? pt("inbox.action.orInBase") : cta}
+                  <ExternalLink className="size-3.5" />
+                </a>
               </Button>
-            </a>
+            </div>
           </div>
         </div>
       </div>

@@ -33,6 +33,13 @@ export const INBOX_I18N: Record<string, InboxI18nEntry> = {
     zh: "待办加载失败，请重试",
     en: "Failed to load your inbox. Please retry",
   },
+  "inbox.action.refresh": { zh: "刷新待办", en: "Refresh inbox" },
+  "inbox.action.refreshing": { zh: "正在刷新待办", en: "Refreshing inbox" },
+  "inbox.action.acknowledge": { zh: "知道了", en: "Got it" },
+  "inbox.action.acknowledgeDone": {
+    zh: "已标记为站内已读",
+    en: "Marked as read in the app",
+  },
   "inbox.badge.daysNoProgress": {
     zh: "天无进展",
     en: "days, no progress",

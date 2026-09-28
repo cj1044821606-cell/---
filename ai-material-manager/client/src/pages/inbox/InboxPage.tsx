@@ -1,10 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { AlertTriangle, Inbox, RefreshCw, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { logger } from "@client/src/lib/logger";
-
-import type { InboxCard, InboxResponse } from "@shared/inbox";
-import { getInbox } from "@client/src/api/inbox";
+import type { InboxCard } from "@shared/inbox";
 import {
   Alert,
   AlertDescription,
@@ -21,6 +18,7 @@ import {
 import { Skeleton } from "@client/src/components/ui/skeleton";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import { useIdentity } from "@client/src/hooks/use-identity";
+import { useInbox } from "@client/src/inbox/inbox-provider";
 import PageHeader from "@client/src/components/PageHeader";
 import { INBOX_I18N } from "./inbox-i18n";
 import InboxCardItem from "./InboxCardItem";
@@ -33,35 +31,10 @@ const SKELETON_KEYS: number[] = [0, 1, 2, 3];
 const InboxPage: React.FC = () => {
   const { language, t } = useI18n();
   const { identity } = useIdentity();
+  const { items, loading, refreshing, error, refresh } = useInbox();
   const navigate = useNavigate();
-  const [items, setItems] = useState<InboxCard[] | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   const pt = (key: string): string => INBOX_I18N[key]?.[language] ?? t(key);
-
-  const load = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response: InboxResponse = await getInbox();
-      setItems(response.items ?? []);
-    } catch (err: unknown) {
-      logger.error(
-        `Failed to load inbox: ${
-          err instanceof Error ? err.stack ?? err.message : String(err)
-        }`,
-      );
-      setError(pt("inbox.error.load"));
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const groups = useMemo(() => {
     const sorted: InboxCard[] = [...(items ?? [])].sort(
@@ -82,23 +55,44 @@ const InboxPage: React.FC = () => {
     <div>
       <PageHeader
         title={t("nav.inbox")}
-        meta={loading && !error ? pt("common.loading") : pt("inbox.page.subtitle")}
+        meta={
+          loading && items === null
+            ? pt("common.loading")
+            : refreshing
+              ? pt("inbox.action.refreshing")
+              : pt("inbox.page.subtitle")
+        }
         actions={
-          identity?.isUploadRole ? (
-            <Button onClick={() => navigate("/upload")}>
-              <Upload className="size-4" />
-              {t("nav.upload")}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label={pt("inbox.action.refresh")}
+              title={pt("inbox.action.refresh")}
+              disabled={loading || refreshing}
+              onClick={() => void refresh()}
+            >
+              <RefreshCw
+                className={`size-4 ${refreshing ? "animate-spin" : ""}`}
+              />
             </Button>
-          ) : null
+            {identity?.isUploadRole ? (
+              <Button onClick={() => navigate("/upload")}>
+                <Upload className="size-4" />
+                {t("nav.upload")}
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
-      {error !== null ? (
+      {error ? (
         <Alert variant="destructive">
           <AlertTriangle className="size-4" />
-          <AlertTitle>{error}</AlertTitle>
+          <AlertTitle>{pt("inbox.error.load")}</AlertTitle>
           <AlertDescription>
-            <Button variant="outline" size="sm" onClick={() => void load()}>
+            <Button variant="outline" size="sm" onClick={() => void refresh()}>
               <RefreshCw className="size-3.5" />
               {t("common.retry")}
             </Button>
@@ -106,7 +100,7 @@ const InboxPage: React.FC = () => {
         </Alert>
       ) : null}
 
-      {error === null && loading ? (
+      {loading && items === null ? (
         <div className="space-y-2">
           {SKELETON_KEYS.map((index: number) => (
             <Skeleton key={index} className="h-[72px] w-full rounded-md" />
@@ -114,21 +108,19 @@ const InboxPage: React.FC = () => {
         </div>
       ) : null}
 
-      {error === null && !loading && total === 0 ? (
+      {!loading && items !== null && total === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <Inbox className="size-5 text-muted-foreground" />
             </EmptyMedia>
             <EmptyTitle>{pt("inbox.empty.title")}</EmptyTitle>
-            <EmptyDescription>
-              {pt("inbox.empty.description")}
-            </EmptyDescription>
+            <EmptyDescription>{pt("inbox.empty.description")}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : null}
 
-      {error === null && !loading && total > 0 ? (
+      {items !== null && total > 0 ? (
         <div className="space-y-6">
           {groups.priority.length > 0 ? (
             <section>

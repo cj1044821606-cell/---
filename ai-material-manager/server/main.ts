@@ -16,9 +16,16 @@ async function bootstrap() {
   const port = Number(process.env.PORT || process.env.SERVER_PORT || '3000');
 
   if (process.env.NODE_ENV === 'production') {
+    // Vite 产物文件名带内容哈希，内容变了文件名就变，可放心让浏览器永久缓存；
+    // 其余静态文件（favicon 等）保留 1 天缓存。index.html 由 ViewController 返回并禁止强缓存。
     app.useStaticAssets(join(process.cwd(), 'dist/client'), {
       index: false,
       maxAge: '1d',
+      setHeaders: (res, filePath) => {
+        if (/[\\/]assets[\\/]/.test(filePath)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      },
     });
   }
 

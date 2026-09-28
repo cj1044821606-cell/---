@@ -29,7 +29,13 @@ import {
   type MaterialStatusLabel,
 } from "@shared/status";
 import type { SystemSettings } from "@shared/settings";
-import { getMaterialDetail, updateMaterialFields } from "@client/src/api/materials";
+import { updateMaterialFields } from "@client/src/api/materials";
+import { queryClient } from "@client/src/lib/query-client";
+import {
+  fetchMaterialDetailCached,
+  invalidateLibrary,
+  materialDetailQueryKey,
+} from "@client/src/pages/library/library-queries";
 import {
   receiveMaterial,
   retireMaterial,
@@ -143,14 +149,17 @@ const MaterialDetailPage: React.FC = () => {
     if (!baseRecordId) {
       return;
     }
-    setLoading(true);
+    // 从物料库悬停预取过的详情直接渲染，不再闪骨架屏
+    const prefetched: MaterialDetailResponse | undefined =
+      queryClient.getQueryData(materialDetailQueryKey(baseRecordId));
+    setLoading(prefetched === undefined);
     setError(null);
-    setResp(null);
+    setResp(prefetched ?? null);
     setEditing(false);
     setDraft(null);
     try {
       const data: MaterialDetailResponse =
-        await getMaterialDetail(baseRecordId);
+        await fetchMaterialDetailCached(baseRecordId);
       setResp(data);
       setReceived(data.receivedByMe);
       setSubscribed(data.subscribedByMe);
@@ -170,6 +179,14 @@ const MaterialDetailPage: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // 离开详情页即丢弃详情缓存：本页的领取、订阅、编辑等操作不会在下次进入时显示旧状态
+  useEffect(() => {
+    if (!baseRecordId) return undefined;
+    return () => {
+      queryClient.removeQueries({ queryKey: materialDetailQueryKey(baseRecordId) });
+    };
+  }, [baseRecordId]);
 
   const statusLabel: MaterialStatusLabel | null = resp
     ? translateMaterialStatus(
@@ -223,6 +240,7 @@ const MaterialDetailPage: React.FC = () => {
         reason,
       });
       setLocalReleaseStatus("已下架");
+      invalidateLibrary(baseRecordId);
       setRetireOpen(false);
       setRetireReason("");
       toast.success(pt("retire.success"));
@@ -258,6 +276,7 @@ const MaterialDetailPage: React.FC = () => {
         reason,
       });
       setLocalReleaseStatus("已发布");
+      invalidateLibrary(baseRecordId);
       setRestoreOpen(false);
       setRetireReason("");
       toast.success(pt("restore.success"));
@@ -338,6 +357,7 @@ const MaterialDetailPage: React.FC = () => {
         }
       }
       setResp({ ...resp, material: updated });
+      invalidateLibrary();
       const labels: string[] = result.appliedFields.map((key) =>
         pt(EDIT_FIELD_LABEL_KEYS[key]),
       );

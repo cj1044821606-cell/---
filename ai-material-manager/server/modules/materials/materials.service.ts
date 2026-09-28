@@ -40,6 +40,7 @@ import {
   type MaterialMainUpdateFields,
 } from "@server/modules/actions/bitable-write.service";
 import { FilesService } from "@server/modules/files/files.service";
+import { ThumbnailService } from "@server/modules/files/thumbnail.service";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
 
 interface MaterialAssetMainRow extends Record<string, unknown> {
@@ -126,6 +127,11 @@ function isStringArray(value: unknown): value is string[] {
 }
 
 const PRODUCT_MATERIAL: string = "产品物料";
+/**
+ * 物料库列表允许读取最多 60 秒前的 Base 快照并在后台刷新（stale-while-revalidate），
+ * 避免每 4 秒缓存过期后用户都要等飞书整表分页读取；本应用自身的写入会立即失效缓存。
+ */
+const LIBRARY_MAX_STALE_MS: number = 60_000;
 
 export interface MaterialListQuery {
   keyword?: string;
@@ -153,6 +159,7 @@ export class MaterialsService {
     private readonly identityService: IdentityService,
     private readonly bitableWriteService: BitableWriteService,
     private readonly filesService: FilesService,
+    private readonly thumbnails: ThumbnailService,
   ) {}
 
   async getMaterialDetail(
@@ -352,7 +359,11 @@ export class MaterialsService {
 
     // 服务端强制条件：仅已发布；关键词模糊匹配物料名称/标准命名/产品型号
     const keywordLower = keyword.toLocaleLowerCase();
-    const rows = (await this.base.rows<MaterialAssetMainRow>("main")).filter(
+    const rows = (
+      await this.base.rows<MaterialAssetMainRow>("main", {
+        maxStaleMs: LIBRARY_MAX_STALE_MS,
+      })
+    ).filter(
       (row) =>
         row.releaseStatus === RELEASE_STATUS.published &&
         (keywordLower.length === 0 ||
@@ -405,6 +416,9 @@ export class MaterialsService {
       },
     );
 
+    // 后台预热本次筛选结果的所有缩略图（不止当前页），滚动/翻页时已经就绪
+    this.thumbnails.warm(filtered.map((row) => this.primaryImage(row)));
+
     const total: number = filtered.length;
     const items: MaterialListItem[] = filtered
       .slice(query.offset, query.offset + query.limit)
@@ -421,7 +435,11 @@ export class MaterialsService {
   async getMaterialKits(userId: string): Promise<MaterialKitsResponse> {
     const identity: Identity = await this.identityService.resolve(userId);
 
-    const rows = (await this.base.rows<MaterialAssetMainRow>("main"))
+    const rows = (
+      await this.base.rows<MaterialAssetMainRow>("main", {
+        maxStaleMs: LIBRARY_MAX_STALE_MS,
+      })
+    )
       .filter((row) => row.releaseStatus === RELEASE_STATUS.published)
       .sort(
         (a, b) =>
@@ -465,6 +483,7 @@ export class MaterialsService {
             row.previewFileS?.[0] ?? row.coverImage?.[0],
             userId,
           ),
+          thumbUrl: this.thumbnails.makeThumbUrl(this.primaryImage(row), userId),
         };
         otherMaterials.push(other);
       }
@@ -497,6 +516,11 @@ export class MaterialsService {
     return areaVisibleInRegions(regions, identity.area);
   }
 
+  /** 封面主图：预览图优先，其次封面图，与前端降级链一致 */
+  private primaryImage(row: MaterialAssetMainRow): string | undefined {
+    return row.previewFileS?.[0] ?? row.coverImage?.[0];
+  }
+
   private mapMaterialListItem(
     row: MaterialAssetMainRow,
     userId: string,
@@ -519,6 +543,7 @@ export class MaterialsService {
       riskLabel: row.riskLabel ?? [],
       previewUrl: this.filesService.makeMediaUrl(row.previewFileS?.[0], userId),
       coverUrl: this.filesService.makeMediaUrl(row.coverImage?.[0], userId),
+      thumbUrl: this.thumbnails.makeThumbUrl(this.primaryImage(row), userId),
       isLargeFile: row.isLargeFile ?? false,
     };
   }
@@ -551,6 +576,11 @@ export class MaterialsService {
       designer: material.designer,
       publishTime: this.toIsoDate(material.publishTime),
       subscriber: material.subscriber ?? [],
+      thumbLargeUrl: this.thumbnails.makeThumbUrl(
+        this.primaryImage(material),
+        userId,
+        1200,
+      ),
     };
   }
 

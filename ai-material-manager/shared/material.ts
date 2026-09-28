@@ -16,6 +16,8 @@ export interface MaterialListItem {
   riskLabel: string[];
   previewUrl: string | null;
   coverUrl: string | null;
+  /** 480px WebP 缩略图，URL 只随附件版本变化，可被浏览器长期缓存 */
+  thumbUrl: string | null;
   isLargeFile: boolean;
 }
 
@@ -47,6 +49,8 @@ export interface MaterialDetail extends MaterialListItem {
   designer: string | null;
   publishTime: string | null;
   subscriber: string[];
+  /** 1200px WebP 展示图，用于详情页大图，原图仅在下载/放大时加载 */
+  thumbLargeUrl: string | null;
 }
 
 export interface VersionItem {
@@ -95,6 +99,7 @@ export interface MaterialOtherItem {
   materialName: string;
   materialType: string;
   previewUrl: string | null;
+  thumbUrl: string | null;
 }
 
 export interface MaterialKitsResponse {

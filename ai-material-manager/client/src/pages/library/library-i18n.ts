@@ -27,14 +27,25 @@ export const LIBRARY_I18N: Record<string, LibraryI18nEntry> = {
     zh: "仅可外发",
     en: "Client-shareable only",
   },
+  "library.filter.externalOnly.tooltip": {
+    zh: "只显示允许分享给客户或渠道的已发布物料",
+    en: "Show only published materials approved for client or channel sharing",
+  },
   "library.viewGlobal.label": { zh: "查看全球", en: "View global" },
+  "library.viewGlobal.tooltip": {
+    zh: "显示其他区域的已发布物料，需要相应权限",
+    en: "Show published materials from other regions; permission required",
+  },
   "library.viewGlobal.banner": {
     zh: "正在查看全球物料：已跳过市场过滤，仍仅展示已发布内容",
     en: "Viewing global materials: market filter skipped, published items only",
   },
   "library.tab.materials": { zh: "按物料", en: "By material" },
   "library.tab.kits": { zh: "按资料包", en: "By kit" },
-  "library.empty.title": { zh: "没有符合条件的物料", en: "No matching materials" },
+  "library.empty.title": {
+    zh: "没有符合条件的物料",
+    en: "No matching materials",
+  },
   "library.empty.description": {
     zh: "换个关键词或筛选条件试试，也可以提一个新的物料需求",
     en: "Try different keywords or filters, or request a new material",
@@ -63,6 +74,29 @@ export const LIBRARY_I18N: Record<string, LibraryI18nEntry> = {
     zh: "领取失败，请重试",
     en: "Failed to receive, please retry",
   },
+  "library.meta.available": { zh: "件可用", en: "available" },
+  "library.meta.area": {
+    zh: "你在 {area}，看到的是本区 + 全区域物料",
+    en: "You are in {area}: showing local + global materials",
+  },
+  "library.filter.clear": { zh: "清除筛选", en: "Clear filters" },
+  "library.search.clear": { zh: "清空搜索", en: "Clear search" },
+  "library.filter.activeTitle": { zh: "已筛选", en: "Filtered by" },
+  "library.filter.remove": { zh: "移除筛选", en: "Remove filter" },
+  "library.filter.keyword": { zh: "关键词", en: "Keyword" },
+  "library.filter.scope": { zh: "范围", en: "Scope" },
+  "library.backToTop": { zh: "回到顶部", en: "Back to top" },
+  "library.search.shortcut": {
+    zh: "按 / 快速搜索，Esc 清空",
+    en: "Press / to search, Esc to clear",
+  },
+  "library.syncing": { zh: "正在同步最新数据", en: "Syncing latest" },
+  "library.progress": {
+    zh: "已显示 {loaded} / {total}",
+    en: "Showing {loaded} of {total}",
+  },
+  "library.loadMore": { zh: "加载更多", en: "Load more" },
+  "library.loadingMore": { zh: "加载中…", en: "Loading…" },
   "library.others.title": {
     zh: "其他物料（品牌 / 展会 / 无型号）",
     en: "Other materials (brand / expo / no model)",

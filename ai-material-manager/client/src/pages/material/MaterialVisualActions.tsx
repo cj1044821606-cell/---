@@ -12,7 +12,7 @@ import type { MaterialDetail, VersionItem } from "@shared/material";
 import type { MaterialStatusLabel } from "@shared/status";
 import type { SystemSettings } from "@shared/settings";
 import type { DeliverableFile } from "@shared/files";
-import { Image } from "@client/src/components/ui/image";
+import FallbackImage from "@client/src/components/FallbackImage";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import { createMaterialDetailPt } from "./material-detail-i18n";
 import { getMaterialFiles } from "@client/src/api/files";
@@ -48,17 +48,8 @@ const MaterialVisualActions: React.FC<MaterialVisualActionsProps> = ({
   const { language } = useI18n();
   const pt = useMemo(() => createMaterialDetailPt(language), [language]);
 
-  const [imgSrc, setImgSrc] = useState<string | null>(
-    material.previewUrl ?? material.coverUrl ?? null,
-  );
-  const [triedThumbnail, setTriedThumbnail] = useState<boolean>(false);
   const [files, setFiles] = useState<DeliverableFile[] | null>(null);
   const [filesLoading, setFilesLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    setImgSrc(material.previewUrl ?? material.coverUrl ?? null);
-    setTriedThumbnail(false);
-  }, [material.baseRecordId, material.previewUrl, material.coverUrl]);
 
   useEffect(() => {
     let cancelled: boolean = false;
@@ -79,17 +70,6 @@ const MaterialVisualActions: React.FC<MaterialVisualActionsProps> = ({
       cancelled = true;
     };
   }, [material.baseRecordId]);
-
-  const handleImageError = (): void => {
-    if (imgSrc === material.previewUrl && material.coverUrl) {
-      setImgSrc(material.coverUrl);
-    } else if (!triedThumbnail) {
-      setImgSrc(`/api/materials/${material.baseRecordId}/thumbnail`);
-      setTriedThumbnail(true);
-    } else {
-      setImgSrc(null);
-    }
-  };
 
   const canSeeSource: boolean = roles.some((role: string) =>
     SOURCE_FILE_ROLES.includes(role),
@@ -121,32 +101,28 @@ const MaterialVisualActions: React.FC<MaterialVisualActionsProps> = ({
     <div className="space-y-3" data-ai-section-type="material-visual">
       {/* A-4：object-contain 完整显示方版/竖版物料 */}
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-surface-sunken">
-        {imgSrc !== null ? (
-          <Image
-            src={imgSrc}
-            alt={material.materialName}
-            className="absolute inset-8 rounded-md object-contain shadow-[0_0_0_1px_rgba(16_24_40_0.07)]"
-            style={{
-              width: 'calc(100% - 4rem)',
-              height: 'calc(100% - 4rem)',
-            }}
-            loading="eager"
-            onError={(): void => {
-              if (imgSrc === material.previewUrl && material.coverUrl) {
-                setImgSrc(material.coverUrl);
-              } else if (!triedThumbnail) {
-                setImgSrc(
+        {/* 详情大图用 1200px 缩略图，原图只在下载时拉取；失败依次降级 */}
+        <FallbackImage
+          sources={
+            material.thumbLargeUrl || material.previewUrl || material.coverUrl
+              ? [
+                  material.thumbLargeUrl,
+                  material.previewUrl,
+                  material.coverUrl,
                   `/api/materials/${material.baseRecordId}/thumbnail`,
-                );
-                setTriedThumbnail(true);
-              } else {
-                setImgSrc(null);
-              }
-            }}
-          />
-        ) : (
-          coverPlaceholder
-        )}
+                ]
+              : []
+          }
+          alt={material.materialName}
+          priority
+          skeletonClassName="inset-8"
+          className="absolute inset-8 rounded-md object-contain shadow-[0_0_0_1px_rgba(16_24_40_0.07)]"
+          style={{
+            width: 'calc(100% - 4rem)',
+            height: 'calc(100% - 4rem)',
+          }}
+          placeholder={coverPlaceholder}
+        />
       </div>
 
       {/* A-2：M/L/S 三种文件形态，通过 files API 获取 */}

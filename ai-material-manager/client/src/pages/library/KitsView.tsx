@@ -177,6 +177,7 @@ const KitsView: React.FC<KitsViewProps> = ({
                 materialName={item.materialName}
                 materialType={item.materialType}
                 previewUrl={item.previewUrl}
+                thumbUrl={item.thumbUrl}
                 language={language}
               />
             ))}

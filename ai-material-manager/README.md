@@ -9,8 +9,11 @@
 `React SPA -> NestJS -> @larksuiteoapi/node-sdk -> Feishu Base / Drive`
 
 - 业务数据仍以原 11 张 Base 表为唯一事实源，不复制到 Postgres。
-- `POST /records/search` 分页读取，服务端有 4 秒短缓存、请求合并和同表串行写队列。
+- `POST /records/search` 分页读取，服务端有 4 秒短缓存、请求合并和同表串行写队列；物料库浏览接口额外允许最多 60 秒的旧快照先返回、后台刷新（stale-while-revalidate），本应用的写入会立即失效缓存。
 - Base 附件只保存 `file_token`，预览与下载经过绑定登录人的签名后端代理。
+- 物料卡片与详情大图使用 `/api/files/thumb` 缩略图：原图只从飞书下载一次，用 sharp 压成 480px / 1200px WebP 存到 `THUMB_CACHE_DIR`（默认 `$UPLOAD_DIR/thumbs`）。缓存键是 `file_token`，附件换新版本即生成新图；URL 不含过期时间，浏览器按 `immutable` 缓存一年。列表接口返回后会在后台预热本次筛选结果的缩略图。
+- 前端静态资源带内容哈希，`/assets/*` 永久缓存，`index.html` 每次校验；页面按路由拆包并在空闲时预取。
+- 前端用 TanStack Query 共享身份、系统配置、物料列表等数据，物料库数据持久化到 `localStorage`（退出登录、会话失效、换账号时清空），再次打开先秒开缓存再后台刷新。
 - 小文件使用 `upload_all`，大于 20MB 的文件使用 4MB 分片上传。临时文件与进度保存在 `UPLOAD_DIR`。
 - `lark-cli` 只用于开发核验和运维，不在普通用户请求链路中运行。
 

@@ -16,6 +16,7 @@ export interface MySubscribedItem {
   materialName: string;
   standardName: string;
   previewUrl: string | null;
+  thumbUrl: string | null;
   currentVersion: string;
 }
 

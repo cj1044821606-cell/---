@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import type { Identity } from "@shared/identity";
 import type { PoolProgress } from "@shared/pool";
 import type {
@@ -86,9 +86,6 @@ interface RegionAuditRow {
   language: string | null;
   aiCompareSummary: string | null;
   updatedAt: Date;
-  receiveDownloadPerson: string | null;
-  isReplacedNewVersion: boolean;
-  isNotified: boolean;
 }
 
 interface VersionReplacedRow {
@@ -97,8 +94,10 @@ interface VersionReplacedRow {
   region: string | null;
   downloadTime: Date | null;
   updatedAt: Date;
-  handler: string | null;
-  processingStatus: string | null;
+  receiveDownloadPerson: string | null;
+  isReplacedNewVersion: boolean;
+  isNotified: boolean;
+  inAppReadAt: Date | null;
 }
 
 interface ProblemHandleRow {
@@ -108,6 +107,8 @@ interface ProblemHandleRow {
   severityLevel: string | null;
   problemDescription: string | null;
   updatedAt: Date;
+  handler: string | null;
+  processingStatus: string | null;
 }
 
 interface StuckRow extends PoolProgressRowLike {
@@ -178,19 +179,44 @@ export class InboxService {
     return { items };
   }
 
+  async acknowledgeVersionReplaced(
+    recordId: string,
+    userId: string,
+  ): Promise<{ success: boolean }> {
+    const row = await this.base.rowById<
+      VersionReplacedRow & Record<string, unknown>
+    >("receive", recordId, { force: true });
+    if (
+      row.receiveDownloadPerson !== userId ||
+      row.isReplacedNewVersion !== true
+    ) {
+      throw new NotFoundException("Inbox item not found");
+    }
+    if (row.inAppReadAt === null) {
+      await this.base.updateRecord("receive", recordId, {
+        站内已读时间: Date.now(),
+      });
+    }
+    return { success: true };
+  }
+
   /** AI 追问：待补充 且 AI 提问对象是我 */
   private async queryAiAsk(
     userId: string,
     nowMs: number,
   ): Promise<InboxCard[]> {
-    const rows = (await this.base.rows<AiAskRow & Record<string, unknown>>("pool")).filter(
+    const rows = (
+      await this.base.rows<AiAskRow & Record<string, unknown>>("pool")
+    ).filter(
       (row) =>
         row.processStatus === AI_PROCESS_STATUS.needSupplement &&
         row.aiAskTarget === userId,
     );
 
-    const progressMap: Map<string, PoolProgress> =
-      await buildPoolProgressMap(this.base, rows);
+    const progressMap: Map<string, PoolProgress> = await buildPoolProgressMap(
+      this.base,
+      rows,
+    );
     const cards: InboxCard[] = [];
     for (const row of rows) {
       if (!row.baseRecordId) continue;
@@ -223,15 +249,21 @@ export class InboxService {
     userId: string,
     nowMs: number,
   ): Promise<InboxCard[]> {
-    const rows = (await this.base.rows<ConfirmRecognizeRow & Record<string, unknown>>("pool")).filter(
+    const rows = (
+      await this.base.rows<ConfirmRecognizeRow & Record<string, unknown>>(
+        "pool",
+      )
+    ).filter(
       (row) =>
         row.processStatus === AI_PROCESS_STATUS.needConfirm &&
         row.confirmResult === CONFIRM_RESULT_WAITING &&
         (row.uploader === userId || row.plannerAuditor === userId),
     );
 
-    const progressMap: Map<string, PoolProgress> =
-      await buildPoolProgressMap(this.base, rows);
+    const progressMap: Map<string, PoolProgress> = await buildPoolProgressMap(
+      this.base,
+      rows,
+    );
     const cards: InboxCard[] = [];
     for (const row of rows) {
       if (!row.baseRecordId) continue;
@@ -263,7 +295,9 @@ export class InboxService {
     userId: string,
     nowMs: number,
   ): Promise<InboxCard[]> {
-    const rows = (await this.base.rows<RecognizingRow & Record<string, unknown>>("pool")).filter(
+    const rows = (
+      await this.base.rows<RecognizingRow & Record<string, unknown>>("pool")
+    ).filter(
       (row) =>
         row.processStatus === AI_PROCESS_STATUS.pendingRecognize &&
         (row.uploader === userId ||
@@ -271,8 +305,10 @@ export class InboxService {
           row.plannerAuditor === userId),
     );
 
-    const progressMap: Map<string, PoolProgress> =
-      await buildPoolProgressMap(this.base, rows);
+    const progressMap: Map<string, PoolProgress> = await buildPoolProgressMap(
+      this.base,
+      rows,
+    );
     const cards: InboxCard[] = [];
     for (const row of rows) {
       if (!row.baseRecordId) continue;
@@ -304,14 +340,18 @@ export class InboxService {
     userId: string,
     nowMs: number,
   ): Promise<InboxCard[]> {
-    const rows = (await this.base.rows<ReturnedRow & Record<string, unknown>>("pool")).filter(
+    const rows = (
+      await this.base.rows<ReturnedRow & Record<string, unknown>>("pool")
+    ).filter(
       (row) =>
         row.processStatus === AI_PROCESS_STATUS.returned &&
         row.uploader === userId,
     );
 
-    const progressMap: Map<string, PoolProgress> =
-      await buildPoolProgressMap(this.base, rows);
+    const progressMap: Map<string, PoolProgress> = await buildPoolProgressMap(
+      this.base,
+      rows,
+    );
     const cards: InboxCard[] = [];
     for (const row of rows) {
       if (!row.baseRecordId) continue;
@@ -343,9 +383,13 @@ export class InboxService {
     userId: string,
     nowMs: number,
   ): Promise<InboxCard[]> {
-    const rows = (await this.base.rows<WaitPublishRow & {
-      releaseStatus: string | null;
-    } & Record<string, unknown>>("main")).filter(
+    const rows = (
+      await this.base.rows<
+        WaitPublishRow & {
+          releaseStatus: string | null;
+        } & Record<string, unknown>
+      >("main")
+    ).filter(
       (row) =>
         row.releaseStatus === RELEASE_STATUS.waitPublish &&
         row.plannerApprover === userId,
@@ -377,11 +421,13 @@ export class InboxService {
 
   /** 区域二创待审核：仅 HQ 审核人（调用方已门控） */
   private async queryRegionAudit(nowMs: number): Promise<InboxCard[]> {
-    const rows = (await this.base.rows<RegionAuditRow & {
-      auditStatus: string | null;
-    } & Record<string, unknown>>("secondary")).filter(
-      (row) => row.auditStatus === REGION_AUDIT_STATUS_WAITING,
-    );
+    const rows = (
+      await this.base.rows<
+        RegionAuditRow & {
+          auditStatus: string | null;
+        } & Record<string, unknown>
+      >("secondary")
+    ).filter((row) => row.auditStatus === REGION_AUDIT_STATUS_WAITING);
 
     const cards: InboxCard[] = [];
     for (const row of rows) {
@@ -406,15 +452,19 @@ export class InboxService {
     return cards;
   }
 
-  /** 版本被替代：我领的旧版已有新版且未通知 */
+  /** 版本被替代：我领的旧版已有新版且尚未在站内确认 */
   private async queryVersionReplaced(
     userId: string,
     nowMs: number,
   ): Promise<InboxCard[]> {
-    const rows = (await this.base.rows<VersionReplacedRow & Record<string, unknown>>("receive")).filter(
+    const rows = (
+      await this.base.rows<VersionReplacedRow & Record<string, unknown>>(
+        "receive",
+      )
+    ).filter(
       (row) =>
         row.isReplacedNewVersion === true &&
-        row.isNotified === false &&
+        row.inAppReadAt === null &&
         row.receiveDownloadPerson === userId,
     );
 
@@ -449,7 +499,11 @@ export class InboxService {
     userId: string,
     nowMs: number,
   ): Promise<InboxCard[]> {
-    const rows = (await this.base.rows<ProblemHandleRow & Record<string, unknown>>("feedback")).filter(
+    const rows = (
+      await this.base.rows<ProblemHandleRow & Record<string, unknown>>(
+        "feedback",
+      )
+    ).filter(
       (row) =>
         row.processingStatus === PROBLEM_STATUS_WAITING &&
         row.handler === userId,
@@ -480,14 +534,18 @@ export class InboxService {
 
   /** AI 处理卡住：失败且重试达到阈值，仅维护者（调用方已门控） */
   private async queryStuck(nowMs: number): Promise<InboxCard[]> {
-    const rows = (await this.base.rows<StuckRow & Record<string, unknown>>("pool")).filter(
+    const rows = (
+      await this.base.rows<StuckRow & Record<string, unknown>>("pool")
+    ).filter(
       (row) =>
         row.processStatus === AI_PROCESS_STATUS.failed &&
         (row.retryCount ?? 0) >= STUCK_RETRY_THRESHOLD,
     );
 
-    const progressMap: Map<string, PoolProgress> =
-      await buildPoolProgressMap(this.base, rows);
+    const progressMap: Map<string, PoolProgress> = await buildPoolProgressMap(
+      this.base,
+      rows,
+    );
     const cards: InboxCard[] = [];
     for (const row of rows) {
       if (!row.baseRecordId) continue;

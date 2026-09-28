@@ -29,6 +29,7 @@ import { PoolService } from "./pool.service";
 import { FeishuUploadService } from "../feishu/feishu-upload.service";
 import { assembleUploadChunks } from "./upload-staging";
 import { UploadIngressService } from "./upload-ingress.service";
+import { buildNamingPreview, parseGuidedNamingInput } from "@shared/naming";
 
 const CONFIRM_ACTIONS: PoolConfirmAction[] = ["publish", "store", "reject"];
 
@@ -101,8 +102,37 @@ export class PoolController {
     if (uploadFileM.length === 0) {
       throw new BadRequestException("uploadFileM is required");
     }
+    if (
+      body.plannerAuditorId !== undefined &&
+      (typeof body.plannerAuditorId !== "string" ||
+        body.plannerAuditorId.trim().length === 0)
+    ) {
+      throw new BadRequestException("plannerAuditorId must be an open_id");
+    }
+    const namingMode = body.namingMode ?? "ai";
+    if (namingMode !== "ai" && namingMode !== "guided") {
+      throw new BadRequestException("invalid namingMode");
+    }
+    const namingInput =
+      namingMode === "guided"
+        ? parseGuidedNamingInput(body.namingInput)
+        : undefined;
+    if (
+      namingMode === "guided" &&
+      (!namingInput || !buildNamingPreview(namingInput).complete)
+    ) {
+      throw new BadRequestException("guided naming information is incomplete");
+    }
+    const normalizedNamingInput = namingInput ?? undefined;
     return this.poolService.upload(
-      { ...body, originalFileName, uploadFileM },
+      {
+        ...body,
+        originalFileName,
+        uploadFileM,
+        plannerAuditorId: body.plannerAuditorId?.trim(),
+        namingMode,
+        namingInput: normalizedNamingInput,
+      },
       userId,
     );
   }
@@ -116,7 +146,10 @@ export class PoolController {
   ): Promise<PoolUploadFileResponse | PoolUploadFileChunkResponse> {
     const userId = req.userContext.userId;
     const requestedUploadId = this.uploadIngress.requestedUploadId(req);
-    if (requestedUploadId && this.uploadService.hasProgress(requestedUploadId)) {
+    if (
+      requestedUploadId &&
+      this.uploadService.hasProgress(requestedUploadId)
+    ) {
       const existingProgress = this.uploadService.getProgress(
         requestedUploadId,
         userId,
@@ -161,8 +194,7 @@ export class PoolController {
     this.uploadService
       .uploadFileFromPath(filePath, uploadId, fileName, fileSize, userId)
       .catch((error: unknown) => {
-        const message =
-          error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         this.logger.log(
           `uploadFileFromPath failed: taskId=${uploadId} fileName=${fileName} error=${message}`,
         );
