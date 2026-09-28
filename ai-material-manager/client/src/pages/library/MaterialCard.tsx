@@ -221,8 +221,8 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
           </span>
         ) : null}
         {isRecommended ? (
-          <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-primary px-1.5 py-0.5 text-xs font-medium text-primary-foreground">
-            <Star className="size-3" />
+          <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-amber px-1.5 py-0.5 text-xs font-semibold text-amber-foreground shadow-sm">
+            <Star className="size-3 fill-current" />
             {RECOMMENDED_LABEL[language]}
           </span>
         ) : null}
@@ -263,7 +263,8 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
               </span>
             ) : null}
             {isPrerelease ? (
-              <span className="inline-flex items-center rounded-md border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-medium text-foreground">
+              <span className="inline-flex items-center gap-1 rounded-md border border-coral-line bg-coral-soft px-2 py-0.5 text-xs font-medium text-coral-text">
+                <span className="size-1.5 rounded-full bg-coral" />
                 {PRERELEASE_LABEL[language]}
               </span>
             ) : null}

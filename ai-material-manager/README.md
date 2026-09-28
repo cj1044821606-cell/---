@@ -29,7 +29,8 @@
 ## AI 助手接入（MCP + Skill）与预发布
 
 - 用户在网页“更多 → AI 助手接入”创建个人访问令牌（30/90/180 天，每人最多 10 个，可随时吊销），把生成的配置粘贴到 Codex / Claude Code / Claude 桌面版 / Cursor 等支持远程 MCP 的助手，并下载 Skill 操作手册。
-- 非访客第一次打开系统时自动播放“Codex 接入教程”（五步动画：创建令牌 → 写入 `~/.codex/config.toml` → `/mcp` 验证 → 安装 Skill 到 `~/.codex/skills/` → 一句话预发布）；关闭后收进顶栏的机器人图标（手机端为右下角浮动图标），随时可重看。是否看过记在浏览器 `localStorage` 的 `app.agent-tutorial-seen`，只影响首次自动弹出。
+- 非访客第一次打开系统时自动播放“Codex 接入教程”（三步动画）：在教程里一键生成“配置口令”（自动创建 90 天令牌）→ 复制发给 Codex，由 Codex 自己写入 `~/.codex/config.toml` 并下载安装 Skill → 重启后一句话预发布。关闭后收进顶栏的机器人图标（手机端为右下角浮动图标），随时可重看；是否看过记在浏览器 `localStorage` 的 `app.agent-tutorial-seen`。
+- `GET /api/agent/skill.zip` 除网页登录外也接受 `Authorization: Bearer <个人访问令牌>`，方便 AI 助手按口令自行下载。
 - MCP 服务地址 `https://<域名>/mcp`（Streamable HTTP，无状态，`Authorization: Bearer <令牌>`）。每次请求按令牌主人新建实例，权限与网页一致；访客不能创建令牌。
 - 令牌带 HMAC 签名，服务端只在 `$AGENT_DATA_DIR/tokens.json`（默认 `$UPLOAD_DIR/agent`，位于持久化上传卷内）保存编号、到期与吊销状态，不保存明文。更换 `SESSION_SECRET` 会使全部令牌失效。
 - 文件上传：`prepare_upload` 签发 2 小时有效、绑定用户的上传链接，并给出 bash / PowerShell 命令；32MB 以内一次 `PUT`，更大的文件按 32MB 分片（低于 Cloudflare 单请求 100MB 上限），收齐后与网页上传走同一条转存飞书链路。下载同理签发 30 分钟有效的链接。

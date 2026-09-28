@@ -31,6 +31,7 @@ import { useI18n } from "@client/src/hooks/use-i18n";
 import {
   AGENT_TOKEN_PLACEHOLDER,
   buildAgentConfigs,
+  buildSetupPrompt,
 } from "@client/src/lib/agent-config";
 import {
   AGENT_TOKEN_TTL_OPTIONS,
@@ -111,9 +112,19 @@ export const AgentAccessCard: React.FC = () => {
   const configs = useMemo(
     () =>
       connection.data
-        ? buildAgentConfigs(connection.data, freshToken ?? AGENT_TOKEN_PLACEHOLDER)
+        ? {
+            ...buildAgentConfigs(
+              connection.data,
+              freshToken ?? AGENT_TOKEN_PLACEHOLDER,
+            ),
+            prompt: buildSetupPrompt(
+              connection.data,
+              freshToken ?? AGENT_TOKEN_PLACEHOLDER,
+              language,
+            ),
+          }
         : null,
-    [connection.data, freshToken],
+    [connection.data, freshToken, language],
   );
 
   const items: AgentTokenItem[] = tokens.data?.items ?? [];
@@ -234,13 +245,21 @@ export const AgentAccessCard: React.FC = () => {
                 {pt("agent.config.placeholder")}
               </p>
             ) : null}
-            <Tabs defaultValue="codex">
+            <Tabs defaultValue="prompt">
               <TabsList className="h-auto flex-wrap gap-y-0">
+                <TabsTrigger value="prompt">{pt("agent.config.promptTab")}</TabsTrigger>
                 <TabsTrigger value="codex">Codex</TabsTrigger>
                 <TabsTrigger value="claudeCode">Claude Code</TabsTrigger>
                 <TabsTrigger value="claudeDesktop">Claude Desktop</TabsTrigger>
                 <TabsTrigger value="generic">Cursor / JSON</TabsTrigger>
               </TabsList>
+              <TabsContent value="prompt">
+                <CopyBlock
+                  text={configs.prompt}
+                  hint={pt("agent.config.prompt")}
+                  pt={pt}
+                />
+              </TabsContent>
               <TabsContent value="codex">
                 <CopyBlock
                   text={configs.codex}

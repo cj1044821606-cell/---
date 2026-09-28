@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import {
   Bot,
   Check,
@@ -91,7 +91,6 @@ const Layout: React.FC = () => {
   const tutorialAutoShown = useRef<boolean>(false);
   const desktopLauncherRef = useRef<HTMLButtonElement>(null);
   const mobileLauncherRef = useRef<HTMLButtonElement>(null);
-  const navigate = useNavigate();
   const tt = (key: string): string =>
     TUTORIAL_I18N[key]?.[language] ?? t(key);
   // 访客没有业务数据权限，不提供 AI 助手接入，也就不需要教程
@@ -139,17 +138,6 @@ const Layout: React.FC = () => {
     });
   };
 
-  const onTutorialGoCreate = (rect: DOMRect | null): void => {
-    parkTutorial(rect);
-    navigate("/more");
-    // 等“更多”页渲染出令牌卡片后再滚过去
-    window.setTimeout(() => {
-      document
-        .getElementById("agent-access")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 400);
-  };
-
   const launcherButton = (
     ref: React.RefObject<HTMLButtonElement | null>,
     className: string,
@@ -165,10 +153,10 @@ const Layout: React.FC = () => {
           setParkedHint(false);
           setTutorialOpen(true);
         }}
-        className="relative grid size-9 place-items-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/40"
+        className="relative grid size-9 place-items-center rounded-lg bg-primary-soft text-primary outline-none transition-[transform,background-color] duration-150 hover:-translate-y-0.5 hover:bg-primary-line focus-visible:ring-2 focus-visible:ring-ring/40"
       >
         <Bot className="size-[18px]" />
-        <span className="absolute right-1 top-1 size-1.5 rounded-full bg-primary ring-2 ring-card" />
+        <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-coral ring-2 ring-card" />
         {launcherPulse ? (
           <span
             aria-hidden="true"
@@ -229,8 +217,13 @@ const Layout: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 hidden h-14 items-center gap-6 border-b border-border bg-card px-6 shadow-[0_1px_0_rgba(16,24,40,0.02)] md:flex">
+    <div className="relative min-h-screen bg-background text-foreground">
+      {/* 页面顶部淡淡的蓝、珊瑚两团光晕，让底色不那么单调；固定在视口，不随内容滚动 */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 top-0 -z-0 h-[420px] bg-[radial-gradient(900px_320px_at_8%_-10%,hsl(214_100%_92%/0.75),transparent),radial-gradient(700px_300px_at_100%_-5%,hsl(7_100%_93%/0.6),transparent)]"
+      />
+      <header className="sticky top-0 z-40 hidden h-14 items-center gap-6 border-b border-border bg-card/85 px-6 shadow-[0_1px_0_rgba(16,24,40,0.02)] backdrop-blur-md md:flex">
         <div className="flex items-center gap-2">
           {appLogo ? (
             <Image
@@ -239,7 +232,7 @@ const Layout: React.FC = () => {
               className="size-7 rounded-md object-cover"
             />
           ) : (
-            <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-sm">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-brand text-primary-foreground shadow-sm">
               <Package className="size-4" />
             </div>
           )}
@@ -273,7 +266,7 @@ const Layout: React.FC = () => {
                   {isActive ? (
                     <span
                       aria-hidden="true"
-                      className="absolute inset-x-3 -bottom-[9px] h-0.5 rounded-full bg-primary"
+                      className="absolute inset-x-3 -bottom-[9px] h-0.5 rounded-full bg-brand"
                     />
                   ) : null}
                 </>
@@ -322,7 +315,7 @@ const Layout: React.FC = () => {
         </div>
       ) : null}
 
-      <main className="pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
+      <main className="relative pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
         <div className="mx-auto w-full max-w-[1280px] px-4 py-5 md:px-8 md:py-7">
           <Outlet />
         </div>
@@ -331,7 +324,7 @@ const Layout: React.FC = () => {
       {canUseAgent
         ? launcherButton(
             mobileLauncherRef,
-            "fixed right-4 bottom-[calc(7.75rem+env(safe-area-inset-bottom))] z-30 rounded-lg border border-border bg-card shadow-md md:hidden",
+            "fixed right-4 bottom-[calc(7.75rem+env(safe-area-inset-bottom))] z-30 rounded-lg bg-card shadow-lg md:hidden",
             "right-[calc(100%+8px)] top-1/2 -translate-y-1/2",
           )
         : null}
@@ -354,7 +347,7 @@ const Layout: React.FC = () => {
                 {isActive ? (
                   <span
                     aria-hidden="true"
-                    className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-primary"
+                    className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-brand"
                   />
                 ) : null}
                 <item.icon className="size-5" />
@@ -393,7 +386,6 @@ const Layout: React.FC = () => {
         <AgentTutorialDialog
           open={tutorialOpen}
           onClose={parkTutorial}
-          onGoCreate={onTutorialGoCreate}
         />
       ) : null}
     </div>

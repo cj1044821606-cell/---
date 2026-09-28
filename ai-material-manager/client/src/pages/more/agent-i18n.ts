@@ -27,6 +27,11 @@ export const AGENT_I18N: Record<string, { zh: string; en: string }> = {
     zh: "创建令牌后，这里会生成带令牌的完整配置",
     en: "Create a token to get a ready-to-paste config",
   },
+  "agent.config.promptTab": { zh: "发给 AI（推荐）", en: "Send to AI (easiest)" },
+  "agent.config.prompt": {
+    zh: "整段复制，粘贴给 Codex 发送，它会自己改好配置、装好 Skill；它申请权限时点「允许」，完成后重启 Codex",
+    en: "Copy all of it and send it to Codex — it edits its own config and installs the Skill. Click Allow when asked, then restart Codex",
+  },
   "agent.config.codex": {
     zh: "Codex（命令行 / 桌面 App / VS Code 插件通用）：粘贴到 ~/.codex/config.toml 末尾（Windows 是 %USERPROFILE%\\.codex\\config.toml），保存后重启 Codex",
     en: "Codex (CLI / desktop app / IDE extension): append to ~/.codex/config.toml (Windows: %USERPROFILE%\\.codex\\config.toml), save and restart Codex",

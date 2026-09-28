@@ -3,15 +3,9 @@ import { ConfigService } from "@nestjs/config";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Request, Response } from "express";
 import { AgentTokenService } from "./agent-token.service";
+import { bearerToken } from "./bearer";
 import { McpServerFactory } from "./mcp-server.factory";
 import { publicBaseUrl } from "./public-url";
-
-function bearerToken(req: Request): string | undefined {
-  const header = req.headers.authorization;
-  if (!header) return undefined;
-  const match = /^Bearer\s+(.+)$/iu.exec(header.trim());
-  return match?.[1]?.trim();
-}
 
 function jsonRpcError(res: Response, status: number, message: string): void {
   res.status(status).json({

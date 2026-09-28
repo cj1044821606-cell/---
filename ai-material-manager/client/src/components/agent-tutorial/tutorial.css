@@ -1,0 +1,148 @@
+/* Codex 接入教程的动效：漂浮、光晕、流光、打字点、礼花 */
+
+@keyframes tut-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes tut-blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(28px, -14px) scale(1.12);
+  }
+  66% {
+    transform: translate(-18px, 12px) scale(0.94);
+  }
+}
+
+@keyframes tut-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes tut-dot {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@keyframes tut-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes tut-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(221 83% 53% / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px hsl(221 83% 53% / 0);
+  }
+}
+
+@keyframes tut-confetti {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+
+@keyframes tut-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes tut-fly-in {
+  0% {
+    transform: translateX(-70px) scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.tut-float {
+  animation: tut-float 5s ease-in-out infinite;
+}
+
+.tut-blob {
+  animation: tut-blob 12s ease-in-out infinite;
+}
+
+.tut-shimmer {
+  background: linear-gradient(
+      90deg,
+      hsl(220 35% 93%) 25%,
+      hsl(214 100% 97%) 50%,
+      hsl(220 35% 93%) 75%
+    )
+    0 0 / 200% 100%;
+  animation: tut-shimmer 1.4s linear infinite;
+}
+
+.tut-dot {
+  animation: tut-dot 1.1s ease-in-out infinite;
+}
+
+.tut-pop {
+  animation: tut-pop 480ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+.tut-glow {
+  animation: tut-glow 1.6s ease-out infinite;
+}
+
+.tut-confetti {
+  animation: tut-confetti 1.3s cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+
+.tut-twinkle {
+  animation: tut-twinkle 2.4s ease-in-out infinite;
+}
+
+.tut-fly-in {
+  animation: tut-fly-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}

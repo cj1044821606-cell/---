@@ -437,9 +437,9 @@ const MaterialDetailPage: React.FC = () => {
           <>
             {resp.banner ? <MaterialBanner banner={resp.banner} /> : null}
             {resp.material.isPrerelease ? (
-              <div className="space-y-3 rounded-md border border-warning/40 bg-warning/10 p-4">
+              <div className="space-y-3 rounded-md border border-coral-line bg-coral-soft p-4">
                 <div className="flex items-start gap-2 text-sm text-foreground">
-                  <Hourglass className="mt-0.5 size-4 shrink-0 text-warning" />
+                  <Hourglass className="mt-0.5 size-4 shrink-0 text-coral" />
                   <span>
                     {language === "en"
                       ? "Pre-release: published by an AI assistant and downloadable as usual. It becomes official once the planner/auditor approves it."

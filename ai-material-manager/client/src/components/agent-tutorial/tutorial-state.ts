@@ -17,13 +17,6 @@ export function markAgentTutorialSeen(): void {
   }
 }
 
-export function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
-  );
-}
-
 /**
  * 关闭教程时的“收纳”动画：一张卡片从弹窗位置缩小飞进入口图标。
  * 用 Web Animations API 直接驱动一个临时元素，结束后移除，不影响页面布局。
@@ -34,7 +27,7 @@ export function flyIntoLauncher(
   onDone: () => void,
 ): void {
   const to = target?.getBoundingClientRect();
-  if (!from || !to || to.width === 0 || prefersReducedMotion()) {
+  if (!from || !to || to.width === 0) {
     onDone();
     return;
   }

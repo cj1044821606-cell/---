@@ -10,6 +10,7 @@ import {
   Put,
   Req,
   Res,
+  UseGuards,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
@@ -30,6 +31,7 @@ import {
 import { AgentUploadService, type AgentUploadResult } from "./agent-upload.service";
 import { MCP_SERVER_NAME } from "./agent.constants";
 import { publicBaseUrl } from "./public-url";
+import { SessionOrAgentTokenGuard } from "./session-or-token.guard";
 import { buildSkillZip } from "./skill-kit";
 
 @Controller("api/agent")
@@ -85,8 +87,11 @@ export class AgentController {
     return { success: true };
   }
 
-  /** Skill 压缩包：解压到 AI 助手的 skills 目录，或在 Claude 设置里直接上传 */
-  @NeedLogin()
+  /**
+   * Skill 压缩包：解压到 AI 助手的 skills 目录，或在 Claude 设置里直接上传。
+   * 除网页登录外也接受个人访问令牌，AI 助手按“配置口令”可以自己下载安装。
+   */
+  @UseGuards(SessionOrAgentTokenGuard)
   @Get("skill.zip")
   skill(@Req() req: Request, @Res() res: Response): void {
     const zip = buildSkillZip({ baseUrl: this.baseUrl(req) });

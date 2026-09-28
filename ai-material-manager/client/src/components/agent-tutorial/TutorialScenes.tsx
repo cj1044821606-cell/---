@@ -1,430 +1,401 @@
 import React from 'react';
 import {
-  Bot,
   Check,
   CheckCircle2,
+  ClipboardPaste,
   Copy,
-  FileArchive,
-  FileText,
-  FolderOpen,
+  Download,
+  FilePenLine,
+  FolderInput,
   KeyRound,
+  Link2,
   Loader2,
   MousePointer2,
-  Plug,
-  Wrench,
+  PackageOpen,
+  PartyPopper,
+  RotateCw,
+  ShieldCheck,
+  Sparkles,
+  Terminal,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
 /**
- * 教程里的五段动画。每段只接收“本段已播放的毫秒数” t，
- * 用 t 是否越过某个时间点来决定元素出现、移动、打字到第几个字——
- * 这样暂停、重播、跳步都只需要改 t，减少动态效果时直接传一个很大的 t 显示最终画面。
+ * 教程里的三段动画。每段只接收“本段已播放的毫秒数” t，
+ * 用 t 是否越过某个时间点来决定元素出现、移动、打勾——暂停、重播、跳步都只需要改 t。
  */
 export interface SceneProps {
   t: number;
   pt: (key: string) => string;
-  mcpUrl: string;
-  serverName: string;
-  os: 'mac' | 'win';
 }
 
-export const SCENE_DURATIONS: number[] = [6500, 8000, 6500, 6000, 11000];
+export const SCENE_DURATIONS: number[] = [5200, 9000, 10500];
 
-function typed(text: string, t: number, start: number, msPerChar = 45): string {
-  if (t <= start) return '';
-  return text.slice(0, Math.floor((t - start) / msPerChar));
-}
+/** 到点才挂载并弹入，保证新内容总是出现在最下方 */
+const POP_IN = 'animate-in fade-in-0 slide-in-from-bottom-2 duration-300';
 
-/** 出现：从下方淡入 */
-function reveal(visible: boolean): string {
-  return cn(
-    'transition-[opacity,transform] duration-500 ease-out',
-    visible
-      ? 'translate-y-0 opacity-100'
-      : 'pointer-events-none translate-y-2 opacity-0',
-  );
-}
-
-const Caret: React.FC<{ show: boolean; dark?: boolean }> = ({ show, dark }) =>
-  show ? (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'ml-px inline-block h-[1.1em] w-[2px] translate-y-[2px] animate-pulse',
-        dark ? 'bg-emerald-300' : 'bg-primary',
-      )}
-    />
-  ) : null;
-
-/** 从 from 偏移处滑到目标元素上的鼠标指针；挂在目标元素内部，不用算页面坐标 */
-const PointerTo: React.FC<{
-  show: boolean;
-  arrived: boolean;
-  from: string;
-}> = ({ show, arrived, from }) => (
+const Pointer: React.FC<{ show: boolean; arrived: boolean; from: string }> = ({
+  show,
+  arrived,
+  from,
+}) => (
   <MousePointer2
     aria-hidden="true"
     className={cn(
-      'pointer-events-none absolute right-1 bottom-0 z-10 size-5 fill-foreground text-card drop-shadow transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.3,0,0.2,1)]',
+      'pointer-events-none absolute right-0 bottom-0 z-10 size-5 fill-foreground text-white drop-shadow-md transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.3,0,0.2,1)]',
       show ? 'opacity-100' : 'opacity-0',
     )}
-    style={{ transform: arrived ? 'translate(40%, 45%)' : from }}
+    style={{ transform: arrived ? 'translate(35%, 40%)' : from }}
   />
 );
 
-const MockWindow: React.FC<{
-  title: string;
-  dark?: boolean;
-  demoLabel: string;
-  children: React.ReactNode;
-}> = ({ title, dark, demoLabel, children }) => (
+const TypingDots: React.FC = () => (
   <div
     className={cn(
-      'flex h-full flex-col overflow-hidden rounded-lg border shadow-sm',
-      dark
-        ? 'border-zinc-700 bg-zinc-900 text-zinc-100'
-        : 'border-border bg-card',
+      'flex w-fit shrink-0 gap-1 rounded-2xl rounded-bl-sm bg-card px-3 py-2.5 shadow-sm',
+      POP_IN,
     )}
   >
-    <div
-      className={cn(
-        'flex h-8 shrink-0 items-center gap-1.5 border-b px-3',
-        dark ? 'border-zinc-700 bg-zinc-800' : 'border-border bg-accent/60',
-      )}
-    >
-      <span className="size-2.5 rounded-full bg-[#ff5f57]" />
-      <span className="size-2.5 rounded-full bg-[#febc2e]" />
-      <span className="size-2.5 rounded-full bg-[#28c840]" />
+    {[0, 150, 300].map((delay) => (
       <span
-        className={cn(
-          'ml-2 min-w-0 flex-1 truncate font-mono text-[11px]',
-          dark ? 'text-zinc-400' : 'text-muted-foreground',
-        )}
-      >
-        {title}
-      </span>
-      <span
-        className={cn(
-          'shrink-0 rounded px-1.5 py-0.5 text-[10px]',
-          dark ? 'bg-zinc-700 text-zinc-300' : 'bg-card text-muted-foreground',
-        )}
-      >
-        {demoLabel}
-      </span>
-    </div>
-    <div className="relative min-h-0 flex-1">{children}</div>
+        key={delay}
+        className="tut-dot size-1.5 rounded-full bg-primary"
+        style={{ animationDelay: `${delay}ms` }}
+      />
+    ))}
   </div>
 );
 
-/* ① 在网页创建令牌 */
-export const SceneCreateToken: React.FC<SceneProps> = ({ t, pt }) => {
-  const label = pt('tutorial.s1.label');
-  const shownLabel = typed(label, t, 400, 90);
-  const pressed = t >= 2500 && t < 2800;
-  const tokenShown = t >= 2800;
-  const copied = t >= 4600;
+/** 漂浮的应用窗口 */
+const AppWindow: React.FC<{
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ title, icon, children }) => (
+  <div className="tut-float relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-[0_18px_40px_-12px_rgba(37,99,235,0.35)] backdrop-blur">
+    <div className="flex h-9 shrink-0 items-center gap-1.5 border-b border-border/70 px-3">
+      <span className="size-2.5 rounded-full bg-[#ff5f57]" />
+      <span className="size-2.5 rounded-full bg-[#febc2e]" />
+      <span className="size-2.5 rounded-full bg-[#28c840]" />
+      <span className="ml-2 flex min-w-0 items-center gap-1.5 text-xs font-medium text-foreground">
+        {icon}
+        <span className="truncate">{title}</span>
+      </span>
+    </div>
+    <div className="relative min-h-0 flex-1 bg-gradient-to-b from-primary-soft/50 to-transparent">
+      {children}
+    </div>
+  </div>
+);
+
+/** 最后一幕的礼花 */
+const CONFETTI = Array.from({ length: 22 }, (_, index) => {
+  const angle = (index / 22) * Math.PI * 2;
+  const distance = 80 + (index % 4) * 28;
+  return {
+    dx: `${Math.round(Math.cos(angle) * distance)}px`,
+    dy: `${Math.round(Math.sin(angle) * distance - 30)}px`,
+    rot: `${(index % 2 ? 1 : -1) * (180 + index * 23)}deg`,
+    color: ['#2563EB', '#FF6B57', '#FFB020', '#8B5CF6', '#10B981'][index % 5],
+    delay: (index % 3) * 60,
+    round: index % 3 === 0,
+  };
+});
+
+const Confetti: React.FC = () => (
+  <div
+    aria-hidden="true"
+    className="pointer-events-none absolute inset-0 grid place-items-center"
+  >
+    {CONFETTI.map((piece, index) => (
+      <span
+        key={index}
+        className={cn(
+          'tut-confetti absolute',
+          piece.round ? 'size-2 rounded-full' : 'h-2.5 w-1.5 rounded-[1px]',
+        )}
+        style={
+          {
+            background: piece.color,
+            animationDelay: `${piece.delay}ms`,
+            '--dx': piece.dx,
+            '--dy': piece.dy,
+            '--rot': piece.rot,
+          } as React.CSSProperties
+        }
+      />
+    ))}
+  </div>
+);
+
+/* ① 生成专属口令 */
+const INGREDIENTS: Array<{ at: number; icon: React.ReactNode; key: string }> = [
+  { at: 700, icon: <Link2 className="size-3" />, key: 'tutorial.s1.part.url' },
+  {
+    at: 1200,
+    icon: <KeyRound className="size-3" />,
+    key: 'tutorial.s1.part.token',
+  },
+  {
+    at: 1700,
+    icon: <PackageOpen className="size-3" />,
+    key: 'tutorial.s1.part.skill',
+  },
+];
+
+export const ScenePrompt: React.FC<SceneProps> = ({ t, pt }) => {
+  const writing = t >= 2300 && t < 3200;
+  const written = t >= 3200;
+  const copied = t >= 4300;
   return (
-    <MockWindow
-      title={`${window.location.host}/more`}
-      demoLabel={pt('tutorial.demo')}
-    >
-      <div className="space-y-3 p-4">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <Bot className="size-4 text-primary" />
-          {pt('tutorial.s1.card')}
+    <div className="flex h-full items-center justify-center gap-6 px-4">
+      <div className="hidden shrink-0 flex-col items-center gap-2 sm:flex">
+        <div className="tut-pop relative grid size-16 place-items-center rounded-2xl bg-brand text-white shadow-lg">
+          <Sparkles className="size-7" />
+          <span className="tut-twinkle absolute -top-1.5 -right-1.5 size-3 rounded-full bg-amber" />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 min-w-0 flex-1 items-center rounded-md border border-input bg-background px-3 text-sm">
-            <span className="truncate">{shownLabel}</span>
-            <Caret show={t < 2000} />
+        <span className="text-xs font-medium text-primary">
+          {pt('tutorial.s1.magic')}
+        </span>
+      </div>
+
+      <div className="tut-float w-full max-w-[340px] overflow-hidden rounded-2xl border border-white/70 bg-white/90 shadow-[0_18px_40px_-12px_rgba(37,99,235,0.35)]">
+        <div className="flex items-center justify-between bg-brand px-4 py-2.5 text-white">
+          <span className="flex items-center gap-1.5 text-sm font-semibold">
+            <Sparkles className="size-4" />
+            {pt('tutorial.s1.card')}
+          </span>
+          <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px]">
+            {pt('tutorial.s1.only')}
+          </span>
+        </div>
+        <div className="space-y-2.5 p-3.5">
+          <div className="flex flex-wrap gap-1.5">
+            {INGREDIENTS.map((item) =>
+              t >= item.at ? (
+                <span
+                  key={item.key}
+                  className="tut-fly-in inline-flex h-5 items-center gap-1 rounded-full border border-primary-line bg-primary-soft px-2 text-[11px] font-medium text-primary"
+                >
+                  {item.icon}
+                  {pt(item.key)}
+                </span>
+              ) : (
+                <span
+                  key={item.key}
+                  className="h-5 w-16 rounded-full border border-dashed border-border-strong"
+                />
+              ),
+            )}
           </div>
-          <div className="relative shrink-0">
-            <div
+          <div className="space-y-1.5 rounded-lg bg-surface-sunken p-2.5">
+            {[92, 78, 86, 54].map((width, index) =>
+              written ? (
+                <div
+                  key={width}
+                  className={cn(
+                    'truncate text-[11px] leading-3 text-muted-foreground',
+                    POP_IN,
+                  )}
+                >
+                  {pt(`tutorial.s1.line${index + 1}`)}
+                </div>
+              ) : (
+                <div
+                  key={width}
+                  className={cn(
+                    'h-3 rounded',
+                    writing ? 'tut-shimmer' : 'bg-border/70',
+                  )}
+                  style={{ width: `${width}%` }}
+                />
+              ),
+            )}
+          </div>
+          <div className="flex justify-end">
+            <span
               className={cn(
-                'flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-transform duration-150',
-                pressed && 'scale-95 ring-4 ring-primary/25',
+                'relative inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-300',
+                copied ? 'bg-success' : 'bg-brand',
+                written && !copied && 'tut-glow',
               )}
             >
-              <KeyRound className="size-4" />
-              <span className="hidden sm:inline">
-                {pt('tutorial.s1.create')}
-              </span>
-            </div>
-            <PointerTo
-              show={t >= 1500 && t < 3600}
-              arrived={t >= 1700}
-              from="translate(-160px, 90px)"
-            />
-          </div>
-        </div>
-        <div
-          className={cn(
-            'space-y-2 rounded-md border border-warning/40 bg-warning-soft p-3',
-            reveal(tokenShown),
-          )}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-medium text-warning-text">
-              {pt('tutorial.s1.once')}
-            </span>
-            <span className="relative">
-              <span
-                className={cn(
-                  'flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors',
-                  copied
-                    ? 'bg-success-soft text-success-text'
-                    : 'bg-card text-foreground',
-                )}
-              >
-                {copied ? (
-                  <Check className="size-3.5" />
-                ) : (
-                  <Copy className="size-3.5" />
-                )}
-                {copied ? pt('tutorial.copied') : pt('tutorial.copy')}
-              </span>
-              <PointerTo
-                show={t >= 3700}
-                arrived={t >= 3900}
-                from="translate(-40px, -70px)"
+              {copied ? (
+                <Check className="size-3.5" />
+              ) : (
+                <Copy className="size-3.5" />
+              )}
+              {copied ? pt('tutorial.copied') : pt('tutorial.s1.copy')}
+              <Pointer
+                show={t >= 3400 && t < 5000}
+                arrived={t >= 3600}
+                from="translate(-150px, 60px)"
               />
             </span>
           </div>
-          <code className="block truncate rounded bg-card px-2 py-1.5 font-mono text-xs">
-            amm_eyJpZCI6Ijd…Kq2Xp9
-          </code>
         </div>
       </div>
-    </MockWindow>
-  );
-};
-
-/* ② 把配置写进 Codex */
-export const SceneConfig: React.FC<SceneProps> = ({
-  t,
-  pt,
-  mcpUrl,
-  serverName,
-  os,
-}) => {
-  const lines = [
-    `[mcp_servers.${serverName}]`,
-    `url = "${mcpUrl}"`,
-    `http_headers = { Authorization = "Bearer amm_…" }`,
-  ];
-  const msPerChar = 28;
-  let cursor = 500;
-  const rendered = lines.map((line) => {
-    const text = typed(line, t, cursor, msPerChar);
-    const typing = t > cursor && text.length < line.length;
-    cursor += line.length * msPerChar + 250;
-    return { text, typing };
-  });
-  const doneAt = cursor;
-  const highlight = t >= doneAt + 200;
-  const saved = t >= doneAt + 1600;
-  const title =
-    os === 'mac'
-      ? '~/.codex/config.toml'
-      : '%USERPROFILE%\\.codex\\config.toml';
-  return (
-    <MockWindow title={title} demoLabel={pt('tutorial.demo')}>
-      <div className="space-y-1 overflow-hidden p-4 font-mono text-[11px] leading-5 sm:text-xs">
-        <div className="text-muted-foreground/60"># …</div>
-        {rendered.map(({ text, typing }, index) => {
-          const isToken = index === 2 && highlight;
-          return (
-            <div key={index} className="break-all whitespace-pre-wrap">
-              {index === 0 ? (
-                <span className="text-primary">{text}</span>
-              ) : isToken ? (
-                <>
-                  {text.replace('amm_…" }', '')}
-                  <span className="rounded bg-warning-soft px-0.5 text-warning-text ring-2 ring-warning/50">
-                    amm_…
-                  </span>
-                  {'" }'}
-                </>
-              ) : (
-                text
-              )}
-              <Caret show={typing} />
-            </div>
-          );
-        })}
-        <div
-          className={cn(
-            'pt-2 font-sans text-xs text-warning-text',
-            reveal(highlight),
-          )}
-        >
-          ↑ {pt('tutorial.s2.replace')}
-        </div>
-      </div>
-      <div
-        className={cn(
-          'absolute right-3 bottom-3 flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-xs font-medium text-success-text',
-          reveal(saved),
-        )}
-      >
-        <CheckCircle2 className="size-3.5" />
-        {os === 'mac' ? '⌘S' : 'Ctrl+S'}
-      </div>
-    </MockWindow>
-  );
-};
-
-/* ③ 确认已经连上 */
-const TOOL_NAMES = [
-  'whoami',
-  'search_materials',
-  'plan_material',
-  'prepare_upload',
-  'publish_material',
-  'list_my_tasks',
-];
-
-export const SceneVerify: React.FC<SceneProps> = ({ t, pt, serverName }) => {
-  const command = typed('/mcp', t, 500, 160);
-  return (
-    <MockWindow title="Codex" dark demoLabel={pt('tutorial.demo')}>
-      <div className="space-y-2 p-4 font-mono text-[11px] leading-5 sm:text-xs">
-        <div>
-          <span className="text-emerald-400">› </span>
-          {command}
-          <Caret show={t < 1300} dark />
-        </div>
-        <div className={cn('space-y-1.5', reveal(t >= 1600))}>
-          <div className="flex items-center gap-1.5 text-zinc-400">
-            <Plug className="size-3.5" /> MCP
-          </div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-zinc-100">• {serverName}</span>
-            <span className="rounded bg-emerald-500/15 px-1.5 text-emerald-300">
-              ✓ {pt('tutorial.s3.connected')}
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5 pl-3">
-          {TOOL_NAMES.map((name, index) => (
-            <span
-              key={name}
-              className={cn(
-                'flex items-center gap-1 rounded bg-zinc-800 px-1.5 text-zinc-300',
-                reveal(t >= 2400 + index * 280),
-              )}
-            >
-              <Wrench className="size-3 text-zinc-500" />
-              {name}
-            </span>
-          ))}
-          <span
-            className={cn(
-              'px-1 text-zinc-400',
-              reveal(t >= 2400 + TOOL_NAMES.length * 280),
-            )}
-          >
-            … {pt('tutorial.s3.tools')}
-          </span>
-        </div>
-      </div>
-    </MockWindow>
-  );
-};
-
-/* ④ 装上 Skill */
-export const SceneSkill: React.FC<SceneProps> = ({ t, pt, os }) => {
-  const moving = t >= 900;
-  const landed = t >= 2000;
-  const skillsDir =
-    os === 'mac' ? '~/.codex/skills/' : '%USERPROFILE%\\.codex\\skills\\';
-  const tree = [
-    { at: 2300, depth: 0, name: 'material-assistant/', folder: true },
-    { at: 2700, depth: 1, name: 'SKILL.md', folder: false },
-    { at: 3100, depth: 1, name: 'reference/naming.md', folder: false },
-  ];
-  const zipCard = (className: string): React.ReactNode => (
-    <div
-      className={cn(
-        'flex flex-col items-center gap-1.5 rounded-lg border border-border bg-card p-3 shadow-sm transition-opacity duration-500',
-        className,
-      )}
-    >
-      <FileArchive className="size-8 text-primary" />
-      <span className="max-w-[7.5rem] truncate font-mono text-[10px] text-muted-foreground">
-        material-assistant-skill.zip
-      </span>
     </div>
   );
+};
+
+/* ② 粘贴给 Codex，它自己装好 */
+interface SetupTask {
+  at: number;
+  doneAt: number;
+  icon: React.ReactNode;
+  key: string;
+}
+
+const SETUP_TASKS: SetupTask[] = [
+  {
+    at: 2000,
+    doneAt: 3700,
+    icon: <FilePenLine className="size-3.5" />,
+    key: 'tutorial.s2.task.config',
+  },
+  {
+    at: 3900,
+    doneAt: 4800,
+    icon: <Download className="size-3.5" />,
+    key: 'tutorial.s2.task.download',
+  },
+  {
+    at: 5000,
+    doneAt: 5800,
+    icon: <FolderInput className="size-3.5" />,
+    key: 'tutorial.s2.task.unzip',
+  },
+];
+
+const TaskRow: React.FC<{ t: number; task: SetupTask; label: string }> = ({
+  t,
+  task,
+  label,
+}) =>
+  t >= task.at ? (
+    <div
+      className={cn(
+        'flex w-fit shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1 text-[11px] transition-colors duration-300',
+        POP_IN,
+        t >= task.doneAt
+          ? 'border-success/30 bg-success-soft text-success-text'
+          : 'border-primary-line bg-card text-foreground',
+      )}
+    >
+      {t >= task.doneAt ? (
+        <CheckCircle2 className="size-3.5" />
+      ) : (
+        <Loader2 className="size-3.5 animate-spin text-primary" />
+      )}
+      <span className="opacity-70">{task.icon}</span>
+      <span className="font-mono">{label}</span>
+    </div>
+  ) : null;
+
+export const SceneSetup: React.FC<SceneProps> = ({ t, pt }) => {
+  const allowed = t >= 3300;
   return (
-    <MockWindow title={skillsDir} demoLabel={pt('tutorial.demo')}>
-      <div className="flex h-full items-center gap-4 p-4">
-        <div className="relative flex w-[38%] min-w-0 shrink-0 justify-center">
-          {zipCard(landed ? 'opacity-40' : '')}
-          {/* 飞进目录的是一个副本，原文件留在「下载」里 */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 flex justify-center transition-[transform,opacity] duration-1000 ease-[cubic-bezier(0.5,0,0.2,1)]"
-            style={{
-              transform: moving ? 'translateX(130%) scale(0.4)' : 'none',
-              opacity: moving && !landed ? 1 : 0,
-            }}
-          >
-            {zipCard('')}
-          </div>
-        </div>
-        <div
-          className={cn(
-            'min-w-0 flex-1 space-y-1.5 rounded-lg border border-dashed p-3 transition-colors duration-500',
-            landed ? 'border-primary/50 bg-primary-soft' : 'border-border',
-          )}
-        >
-          <div className="flex items-center gap-1.5 truncate font-mono text-[11px] text-muted-foreground">
-            <FolderOpen className="size-4 shrink-0 text-primary" />
-            skills
-          </div>
-          {tree.map((row) => (
-            <div
-              key={row.name}
-              className={cn(
-                'flex items-center gap-1.5 truncate font-mono text-[11px]',
-                reveal(t >= row.at),
-              )}
-              style={{ paddingLeft: `${(row.depth + 1) * 12}px` }}
-            >
-              {row.folder ? (
-                <FolderOpen className="size-3.5 shrink-0 text-primary" />
-              ) : (
-                <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-              )}
-              <span className="truncate">{row.name}</span>
-            </div>
-          ))}
+    <AppWindow
+      title="Codex"
+      icon={<Terminal className="size-3.5 text-primary" />}
+    >
+      <div className="flex h-full flex-col justify-end gap-2 overflow-hidden p-3 text-xs">
+        {t >= 200 ? (
           <div
             className={cn(
-              'flex items-center gap-1 pt-1 text-xs text-success-text',
-              reveal(t >= 3900),
+              'ml-auto max-w-[88%] shrink-0 space-y-1.5 rounded-2xl rounded-br-sm bg-brand px-3 py-2 text-white shadow-md',
+              POP_IN,
             )}
           >
-            <CheckCircle2 className="size-3.5" /> Skill ✓
+            <p className="line-clamp-2 leading-relaxed">
+              {pt('tutorial.s2.pasted')}
+            </p>
+            <span className="inline-flex items-center gap-1 rounded-md bg-white/20 px-1.5 py-0.5 text-[10px]">
+              <ClipboardPaste className="size-3" />
+              {pt('tutorial.s1.card')}
+            </span>
           </div>
-        </div>
+        ) : null}
+        {t >= 1000 && t < 2000 ? <TypingDots /> : null}
+        <TaskRow t={t} task={SETUP_TASKS[0]} label={pt(SETUP_TASKS[0].key)} />
+        {t >= 2500 ? (
+          <div
+            className={cn(
+              'w-full max-w-[17rem] shrink-0 rounded-xl border bg-card p-2.5 shadow-md transition-colors duration-300',
+              POP_IN,
+              allowed ? 'border-success/30' : 'border-amber',
+            )}
+          >
+            <div className="flex items-center gap-1.5 font-medium text-foreground">
+              <ShieldCheck
+                className={cn(
+                  'size-4',
+                  allowed ? 'text-success' : 'text-amber-text',
+                )}
+              />
+              {allowed
+                ? pt('tutorial.s2.allowed')
+                : pt('tutorial.s2.permission')}
+            </div>
+            {!allowed ? (
+              <div className="mt-2 flex justify-end gap-1.5">
+                <span className="rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {pt('tutorial.s2.deny')}
+                </span>
+                <span className="relative rounded-md bg-primary px-2 py-0.5 text-[11px] font-medium text-white">
+                  {pt('tutorial.s2.allow')}
+                  <Pointer
+                    show={t >= 2700}
+                    arrived={t >= 2900}
+                    from="translate(-120px, 50px)"
+                  />
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {SETUP_TASKS.slice(1).map((task) => (
+          <TaskRow key={task.key} t={t} task={task} label={pt(task.key)} />
+        ))}
+        {t >= 6300 ? (
+          <div
+            className={cn(
+              'flex max-w-[88%] shrink-0 items-start gap-1.5 rounded-2xl rounded-bl-sm bg-card px-3 py-2 text-foreground shadow-sm',
+              POP_IN,
+            )}
+          >
+            <PartyPopper className="mt-px size-3.5 shrink-0 text-coral" />
+            {pt('tutorial.s2.done')}
+          </div>
+        ) : null}
+        {t >= 7300 ? (
+          <div className={cn('flex shrink-0 items-center gap-2', POP_IN)}>
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-medium text-primary">
+              <RotateCw className={cn('size-3', t < 8200 && 'animate-spin')} />
+              {pt('tutorial.s2.restart')}
+            </span>
+            {t >= 8200 ? (
+              <span className="tut-pop inline-flex items-center gap-1 rounded-full bg-success px-2.5 py-1 text-[11px] font-semibold text-white">
+                <CheckCircle2 className="size-3" />
+                {pt('tutorial.s2.connected')}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
-    </MockWindow>
+    </AppWindow>
   );
 };
 
-/* ⑤ 开始使用 */
+/* ③ 说一句话就能发布 */
 const CHAT_TOOLS: Array<{ name: string; at: number }> = [
   { name: 'whoami', at: 1200 },
-  { name: 'search_materials', at: 1800 },
-  { name: 'plan_material', at: 2400 },
-  { name: 'prepare_upload', at: 3000 },
+  { name: 'search_materials', at: 1700 },
+  { name: 'plan_material', at: 2200 },
+  { name: 'prepare_upload', at: 2700 },
 ];
-
-/** 聊天里的消息到点才挂载，这样新消息总是出现在底部，把旧消息往上顶 */
-const POP_IN = 'animate-in fade-in-0 slide-in-from-bottom-2 duration-300';
 
 const ToolChip: React.FC<{
   name: string;
@@ -435,7 +406,7 @@ const ToolChip: React.FC<{
   t >= at ? (
     <div
       className={cn(
-        'flex w-fit shrink-0 items-center gap-1.5 rounded-md border border-border bg-accent/50 px-2 py-0.5 font-mono text-[11px] text-muted-foreground',
+        'flex w-fit shrink-0 items-center gap-1.5 rounded-full border border-primary-line bg-card px-2.5 py-0.5 font-mono text-[11px] text-primary',
         POP_IN,
       )}
     >
@@ -449,24 +420,33 @@ const ToolChip: React.FC<{
   ) : null;
 
 export const SceneUse: React.FC<SceneProps> = ({ t, pt }) => {
-  const uploadProgress = Math.max(0, Math.min(1, (t - 3600) / 1800));
+  const uploadProgress = Math.max(0, Math.min(1, (t - 3300) / 1700));
   const bubble = (
     at: number,
     className: string,
     content: React.ReactNode,
   ): React.ReactNode =>
     t >= at ? (
-      <div className={cn('shrink-0 rounded-lg px-3 py-2', POP_IN, className)}>
+      <div
+        className={cn(
+          'shrink-0 rounded-2xl px-3 py-2 shadow-sm',
+          POP_IN,
+          className,
+        )}
+      >
         {content}
       </div>
     ) : null;
   return (
-    <MockWindow title="Codex" demoLabel={pt('tutorial.demo')}>
+    <AppWindow
+      title="Codex"
+      icon={<Terminal className="size-3.5 text-primary" />}
+    >
       <div className="flex h-full flex-col justify-end gap-2 overflow-hidden p-3 text-xs">
         {bubble(
           200,
-          'ml-auto max-w-[85%] rounded-br-sm bg-primary text-primary-foreground',
-          pt('tutorial.s5.ask'),
+          'ml-auto max-w-[85%] rounded-br-sm bg-brand text-white',
+          pt('tutorial.s3.ask'),
         )}
         {CHAT_TOOLS.map((tool) => (
           <ToolChip
@@ -474,55 +454,57 @@ export const SceneUse: React.FC<SceneProps> = ({ t, pt }) => {
             name={tool.name}
             t={t}
             at={tool.at}
-            doneAt={tool.at + 500}
+            doneAt={tool.at + 450}
           />
         ))}
-        {t >= 3500 ? (
+        {t >= 3200 ? (
           <div
-            className={cn('w-full max-w-[16rem] shrink-0 space-y-1', POP_IN)}
+            className={cn(
+              'w-full max-w-[16rem] shrink-0 space-y-1 rounded-xl bg-card p-2 shadow-sm',
+              POP_IN,
+            )}
           >
             <div className="flex justify-between text-[11px] text-muted-foreground">
-              <span>curl · {pt('tutorial.s5.upload')}</span>
-              <span className="font-mono">
+              <span>{pt('tutorial.s3.upload')}</span>
+              <span className="font-mono text-primary">
                 {Math.round(uploadProgress * 100)}%
               </span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-accent">
+            <div className="h-1.5 overflow-hidden rounded-full bg-primary-soft">
               <div
-                className="h-full rounded-full bg-primary transition-[width] duration-150"
+                className="h-full rounded-full bg-brand transition-[width] duration-150"
                 style={{ width: `${uploadProgress * 100}%` }}
               />
             </div>
           </div>
         ) : null}
         {bubble(
-          6000,
-          'max-w-[85%] rounded-bl-sm border border-border bg-card',
-          pt('tutorial.s5.confirm'),
+          5600,
+          'max-w-[85%] rounded-bl-sm bg-card text-foreground',
+          pt('tutorial.s3.confirm'),
         )}
         {bubble(
-          7400,
-          'ml-auto rounded-br-sm bg-primary text-primary-foreground',
-          pt('tutorial.s5.yes'),
+          6900,
+          'ml-auto rounded-br-sm bg-brand text-white',
+          pt('tutorial.s3.yes'),
         )}
-        <ToolChip name="publish_material" t={t} at={8000} doneAt={8700} />
+        <ToolChip name="publish_material" t={t} at={7400} doneAt={8000} />
         {bubble(
-          9000,
-          'flex max-w-[85%] items-start gap-1.5 rounded-bl-sm border border-success/40 bg-success-soft text-success-text',
+          8300,
+          'flex max-w-[85%] items-start gap-1.5 rounded-bl-sm border border-coral-line bg-coral-soft text-coral-text',
           <>
-            <CheckCircle2 className="mt-px size-3.5 shrink-0" />
-            {pt('tutorial.s5.result')}
+            <PartyPopper className="mt-px size-3.5 shrink-0" />
+            {pt('tutorial.s3.result')}
           </>,
         )}
       </div>
-    </MockWindow>
+      {t >= 8300 && t < 10000 ? <Confetti /> : null}
+    </AppWindow>
   );
 };
 
 export const SCENES: React.FC<SceneProps>[] = [
-  SceneCreateToken,
-  SceneConfig,
-  SceneVerify,
-  SceneSkill,
+  ScenePrompt,
+  SceneSetup,
   SceneUse,
 ];
