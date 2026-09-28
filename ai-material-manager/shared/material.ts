@@ -19,6 +19,8 @@ export interface MaterialListItem {
   /** 480px WebP 缩略图，URL 只随附件版本变化，可被浏览器长期缓存 */
   thumbUrl: string | null;
   isLargeFile: boolean;
+  /** AI 助手预发布：可正常下载，等待策划人及审核人审核后转为正式发布 */
+  isPrerelease: boolean;
 }
 
 export interface MaterialListParams {
@@ -78,6 +80,8 @@ export interface MaterialDetailResponse {
   subscribedByMe: boolean;
   receivedByMe: boolean;
   canRetire: boolean;
+  /** 当前用户可对这条预发布物料执行“审核通过 / 驳回” */
+  canReviewPrerelease: boolean;
 }
 
 export interface MaterialKitItem {

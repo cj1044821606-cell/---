@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Download,
   FileQuestion,
+  Hourglass,
   Flag,
   Loader2,
   PackageX,
@@ -30,6 +31,7 @@ import {
 } from "@shared/status";
 import type { SystemSettings } from "@shared/settings";
 import { updateMaterialFields } from "@client/src/api/materials";
+import PrereleaseReviewActions from "@client/src/components/PrereleaseReviewActions";
 import { queryClient } from "@client/src/lib/query-client";
 import {
   fetchMaterialDetailCached,
@@ -434,6 +436,27 @@ const MaterialDetailPage: React.FC = () => {
         ) : resp && statusLabel ? (
           <>
             {resp.banner ? <MaterialBanner banner={resp.banner} /> : null}
+            {resp.material.isPrerelease ? (
+              <div className="space-y-3 rounded-md border border-warning/40 bg-warning/10 p-4">
+                <div className="flex items-start gap-2 text-sm text-foreground">
+                  <Hourglass className="mt-0.5 size-4 shrink-0 text-warning" />
+                  <span>
+                    {language === "en"
+                      ? "Pre-release: published by an AI assistant and downloadable as usual. It becomes official once the planner/auditor approves it."
+                      : "预发布：由 AI 助手发布，可正常下载；策划人及审核人审核通过后转为正式发布。"}
+                  </span>
+                </div>
+                {resp.canReviewPrerelease ? (
+                  <PrereleaseReviewActions
+                    materialId={resp.material.baseRecordId}
+                    onDone={() => {
+                      invalidateLibrary(resp.material.baseRecordId);
+                      void load();
+                    }}
+                  />
+                ) : null}
+              </div>
+            ) : null}
             <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_380px]">
               <div className="space-y-5">
                 <MaterialVisualActions

@@ -7,7 +7,9 @@ export type InboxCardType =
   | "regionAudit"
   | "versionReplaced"
   | "problemHandle"
-  | "stuck";
+  | "stuck"
+  | "prereleaseReview"
+  | "prereleaseRejected";
 
 import type { PoolProgress } from "./pool";
 

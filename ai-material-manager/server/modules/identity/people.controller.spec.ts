@@ -1,4 +1,5 @@
 import { PeopleController } from './people.controller';
+import { PeopleService } from './people.service';
 import type { FeishuBaseGateway } from '@server/modules/feishu/feishu-base.gateway';
 import type { FeishuService } from '@server/modules/feishu/feishu.service';
 import type { IdentityService } from './identity.service';
@@ -8,12 +9,16 @@ describe('organization people search', () => {
   const req = { userContext: { userId: 'ou_uploader' } } as Request;
   const search = jest.fn();
   const resolve = jest.fn();
+  const feishu = {
+    client: { directory: { v1: { employee: { search } } } },
+  } as unknown as FeishuService;
   const controller = new PeopleController(
-    { rows: jest.fn(async () => []) } as unknown as FeishuBaseGateway,
-    {
-      client: { directory: { v1: { employee: { search } } } },
-    } as unknown as FeishuService,
-    { resolve } as unknown as IdentityService,
+    feishu,
+    new PeopleService(
+      { rows: jest.fn(async () => []) } as unknown as FeishuBaseGateway,
+      feishu,
+      { resolve } as unknown as IdentityService,
+    ),
   );
   beforeEach(() => {
     search.mockReset();

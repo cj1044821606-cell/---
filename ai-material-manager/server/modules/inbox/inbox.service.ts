@@ -16,6 +16,7 @@ import {
   INBOX_LIMIT,
   RELEASE_STATUS,
 } from "@server/common/constants/bitable.constants";
+import { extractLinkRecordIds } from "@server/common/utils/bitable-link.util";
 import { IdentityService } from "@server/modules/identity/identity.service";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
 import {
@@ -78,6 +79,27 @@ interface WaitPublishRow {
   updatedAt: Date;
   plannerApprover: string | null;
 }
+
+interface PrereleaseMainRow extends Record<string, unknown> {
+  baseRecordId: string | null;
+  materialName: string | null;
+  standardName: string | null;
+  materialType: string | null;
+  currentVersion: string | null;
+  releaseStatus: string | null;
+  plannerApprover: string | null;
+  isPrerelease: boolean;
+  reviewComment: string | null;
+  updatedAt: Date;
+}
+
+interface PrereleaseVersionRow extends Record<string, unknown> {
+  relatedMaterial: unknown;
+  modifier: string | null;
+}
+
+/** 被驳回的预发布在上传者待办里保留的天数 */
+const PRERELEASE_REJECTED_VISIBLE_DAYS = 14;
 
 interface RegionAuditRow {
   baseRecordId: string | null;
@@ -160,6 +182,8 @@ export class InboxService {
       this.queryWaitPublish(userId, nowMs),
       this.queryVersionReplaced(userId, nowMs),
       this.queryProblemHandle(userId, nowMs),
+      this.queryPrereleaseReview(userId, nowMs),
+      this.queryPrereleaseRejected(userId, nowMs),
     ];
     // 身份门控：regionAudit 仅 HQ 审核人查询；stuck 仅维护者查询
     if (identity.isHqAuditor) {
@@ -417,6 +441,79 @@ export class InboxService {
       );
     }
     return cards;
+  }
+
+  /** AI 助手预发布：我是策划人及审核人，等我点审核 */
+  private async queryPrereleaseReview(
+    userId: string,
+    nowMs: number,
+  ): Promise<InboxCard[]> {
+    const rows = (await this.base.rows<PrereleaseMainRow>("main")).filter(
+      (row) =>
+        row.isPrerelease &&
+        row.releaseStatus === RELEASE_STATUS.published &&
+        row.plannerApprover === userId,
+    );
+    return rows.flatMap((row) =>
+      row.baseRecordId
+        ? [
+            this.buildCard({
+              type: "prereleaseReview",
+              titleKey: "inbox.prereleaseReview.title",
+              source: "materialAssetMain",
+              baseRecordId: row.baseRecordId,
+              body: `《${row.materialName ?? ""}》已由 AI 助手预发布，请审核`,
+              fields: [
+                this.toField("inbox.field.standardName", row.standardName),
+                this.toField("inbox.field.materialType", row.materialType),
+                this.toField("inbox.field.currentVersion", row.currentVersion),
+              ],
+              updatedAt: row.updatedAt,
+              nowMs,
+            }),
+          ]
+        : [],
+    );
+  }
+
+  /** 我通过 AI 助手预发布的物料被审核人驳回（按版本记录的修改人识别上传者） */
+  private async queryPrereleaseRejected(
+    userId: string,
+    nowMs: number,
+  ): Promise<InboxCard[]> {
+    const rejected = (await this.base.rows<PrereleaseMainRow>("main")).filter(
+      (row) =>
+        row.isPrerelease &&
+        row.releaseStatus === RELEASE_STATUS.offline &&
+        Boolean(row.reviewComment) &&
+        nowMs - row.updatedAt.getTime() <
+          PRERELEASE_REJECTED_VISIBLE_DAYS * DAY_MS,
+    );
+    if (rejected.length === 0) return [];
+    const mine = new Set<string>();
+    for (const version of await this.base.rows<PrereleaseVersionRow>("version")) {
+      if (version.modifier !== userId) continue;
+      for (const id of extractLinkRecordIds(version.relatedMaterial)) mine.add(id);
+    }
+    return rejected.flatMap((row) =>
+      row.baseRecordId && mine.has(row.baseRecordId)
+        ? [
+            this.buildCard({
+              type: "prereleaseRejected",
+              titleKey: "inbox.prereleaseRejected.title",
+              source: "materialAssetMain",
+              baseRecordId: row.baseRecordId,
+              body: row.reviewComment,
+              fields: [
+                this.toField("inbox.field.standardName", row.standardName),
+                this.toField("inbox.field.currentVersion", row.currentVersion),
+              ],
+              updatedAt: row.updatedAt,
+              nowMs,
+            }),
+          ]
+        : [],
+    );
   }
 
   /** 区域二创待审核：仅 HQ 审核人（调用方已门控） */

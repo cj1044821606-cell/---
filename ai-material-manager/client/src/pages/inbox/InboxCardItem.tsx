@@ -6,11 +6,13 @@ import {
   ChevronDown,
   Cpu,
   ExternalLink,
+  Hourglass,
   Loader,
   MessageCircleQuestion,
   PackageX,
   RotateCcw,
   ShieldCheck,
+  Undo2,
   UploadCloud,
   type LucideIcon,
 } from "lucide-react";
@@ -20,9 +22,11 @@ import { Badge } from "@client/src/components/ui/badge";
 import { Button } from "@client/src/components/ui/button";
 import { acknowledgeVersionReplaced } from "@client/src/api/inbox";
 import { useInbox } from "@client/src/inbox/inbox-provider";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import ProgressTracker from "@client/src/components/ProgressTracker";
+import PrereleaseReviewActions from "@client/src/components/PrereleaseReviewActions";
 import InboxCardActions from "./InboxCardActions";
 import { INBOX_I18N } from "./inbox-i18n";
 
@@ -36,6 +40,8 @@ const TYPE_ICONS: Record<InboxCardType, LucideIcon> = {
   versionReplaced: PackageX,
   problemHandle: AlertTriangle,
   stuck: Loader,
+  prereleaseReview: Hourglass,
+  prereleaseRejected: Undo2,
 };
 
 interface InboxCardItemProps {
@@ -62,6 +68,12 @@ const InboxCardItem: React.FC<InboxCardItemProps> = ({ card, priority }) => {
   const inlineAction: boolean =
     (card.type === "aiAsk" || card.type === "confirmRecognize") &&
     card.recordId !== "";
+  // 预发布卡片在站内处理：链接到物料详情页，而不是飞书多维表格
+  const isPrereleaseCard: boolean =
+    card.type === "prereleaseReview" || card.type === "prereleaseRejected";
+  const quoteLabelKey: string = isPrereleaseCard
+    ? `inbox.quote.${card.type}`
+    : "inbox.quote.label";
 
   const toggle = (): void => {
     setExpanded((prev: boolean) => !prev);
@@ -145,7 +157,7 @@ const InboxCardItem: React.FC<InboxCardItemProps> = ({ card, priority }) => {
             {card.body !== "" ? (
               <div className="rounded-md border-l-[3px] border-l-primary bg-ai-quote px-3 py-2.5">
                 <p className="text-xs font-medium text-ai-quote-foreground/70">
-                  {pt("inbox.quote.label")}
+                  {pt(quoteLabelKey)}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-ai-quote-foreground">
                   {card.body}
@@ -157,6 +169,12 @@ const InboxCardItem: React.FC<InboxCardItemProps> = ({ card, priority }) => {
             ) : null}
             {inlineAction ? (
               <InboxCardActions type={card.type} recordId={card.recordId} />
+            ) : null}
+            {card.type === "prereleaseReview" && card.recordId ? (
+              <PrereleaseReviewActions
+                materialId={card.recordId}
+                onDone={() => void refresh()}
+              />
             ) : null}
             {card.fields.length > 0 ? (
               <div className="space-y-1.5">
@@ -191,20 +209,30 @@ const InboxCardItem: React.FC<InboxCardItemProps> = ({ card, priority }) => {
                   {pt("inbox.action.acknowledge")}
                 </Button>
               ) : null}
-              <Button
-                asChild
-                size="sm"
-                variant={
-                  inlineAction || card.type === "versionReplaced"
-                    ? "outline"
-                    : "default"
-                }
-              >
-                <a href={card.deepLink} target="_blank" rel="noreferrer">
-                  {inlineAction ? pt("inbox.action.orInBase") : cta}
-                  <ExternalLink className="size-3.5" />
-                </a>
-              </Button>
+              {isPrereleaseCard ? (
+                card.type === "prereleaseReview" ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={`/material/${encodeURIComponent(card.recordId)}`}>
+                      {cta}
+                    </Link>
+                  </Button>
+                ) : null
+              ) : (
+                <Button
+                  asChild
+                  size="sm"
+                  variant={
+                    inlineAction || card.type === "versionReplaced"
+                      ? "outline"
+                      : "default"
+                  }
+                >
+                  <a href={card.deepLink} target="_blank" rel="noreferrer">
+                    {inlineAction ? pt("inbox.action.orInBase") : cta}
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                </Button>
+              )}
             </div>
           </div>
         </div>

@@ -45,6 +45,8 @@ export interface MaterialCardProps {
   productModel?: string | null;
   appLanguage?: string;
   isRecommended?: boolean;
+  /** AI 助手预发布，等待策划人及审核人审核 */
+  isPrerelease?: boolean;
   /** 首屏卡片：立即加载并提高下载优先级 */
   priority?: boolean;
 }
@@ -123,6 +125,11 @@ const RECOMMENDED_LABEL: Record<Language, string> = {
   en: 'Featured',
 };
 
+const PRERELEASE_LABEL: Record<Language, string> = {
+  zh: '预发布',
+  en: 'Pre-release',
+};
+
 const MaterialCard: React.FC<MaterialCardProps> = ({
   baseRecordId,
   materialName,
@@ -139,6 +146,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   productModel = null,
   appLanguage = '',
   isRecommended = false,
+  isPrerelease = false,
   priority = false,
 }: MaterialCardProps) => {
   // 封面降级链：缩略图 → 原预览图 → 封面图 → 后端兜底缩略图 → 类型占位（绝不出现破图）
@@ -238,7 +246,10 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
           ) : null}
         </div>
 
-        {showStatusBadge || showExternalBadge || metaParts.length > 0 ? (
+        {showStatusBadge ||
+        showExternalBadge ||
+        isPrerelease ||
+        metaParts.length > 0 ? (
           <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1.5">
             {showStatusBadge ? (
               <span
@@ -249,6 +260,11 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
               >
                 <StatusIcon className="size-3" />
                 {STATUS_LABELS[statusLabel][language]}
+              </span>
+            ) : null}
+            {isPrerelease ? (
+              <span className="inline-flex items-center rounded-md border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-medium text-foreground">
+                {PRERELEASE_LABEL[language]}
               </span>
             ) : null}
             {showExternalBadge && externalReady ? (

@@ -95,6 +95,9 @@ const main: FieldContract[] = [
   { source: "云盘链接L", target: "cloudFilesL", kind: "mentionFiles" },
   { source: "云盘链接S", target: "cloudFilesS", kind: "mentionFiles" },
   { source: "是否大文件", target: "isLargeFile", kind: "boolean" },
+  // AI 助手快速通道：预发布标记与审核意见（策划人及审核人审核后清除标记）
+  { source: "预发布", target: "isPrerelease", kind: "boolean" },
+  { source: "审核意见", target: "reviewComment", kind: "text" },
 ];
 
 const version: FieldContract[] = [

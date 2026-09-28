@@ -26,6 +26,17 @@
 - 飞书应用需开通并发布 `directory:employee:search` 和 `directory:employee.base.name.name:read`（或覆盖该字段的权限）。头像与部门为可选字段。服务端明确使用 `open_id`，保留分页和权限失败提示。
 - 本机测试 PDF 预览需安装 Poppler；Docker 与 GitHub CI 已包含该依赖。
 
+## AI 助手接入（MCP + Skill）与预发布
+
+- 用户在网页“更多 → AI 助手接入”创建个人访问令牌（30/90/180 天，每人最多 10 个，可随时吊销），把生成的配置粘贴到 Claude Code / Claude 桌面版 / Cursor 等支持远程 MCP 的助手，并下载 Skill 操作手册。
+- MCP 服务地址 `https://<域名>/mcp`（Streamable HTTP，无状态，`Authorization: Bearer <令牌>`）。每次请求按令牌主人新建实例，权限与网页一致；访客不能创建令牌。
+- 令牌带 HMAC 签名，服务端只在 `$AGENT_DATA_DIR/tokens.json`（默认 `$UPLOAD_DIR/agent`，位于持久化上传卷内）保存编号、到期与吊销状态，不保存明文。更换 `SESSION_SECRET` 会使全部令牌失效。
+- 文件上传：`prepare_upload` 签发 2 小时有效、绑定用户的上传链接，并给出 bash / PowerShell 命令；32MB 以内一次 `PUT`，更大的文件按 32MB 分片（低于 Cloudflare 单请求 100MB 上限），收齐后与网页上传走同一条转存飞书链路。下载同理签发 30 分钟有效的链接。
+- **快速通道（预发布）**：用户本机的 AI 完成识别命名、标记后调用 `publish_material`，服务端几秒内依次写主表（先“待发布”）→ 版本记录（审核状态=待审核）→ 发布记录 → 主表置“已发布 + 预发布”，**不经过 TClaw**。版本替换时同时连上“替代的旧版本”，由多维表格自动化立即下架旧版并通知。任一步失败会删除本次已建记录。
+- 预发布物料所有人可正常下载，列表与详情带“预发布”标记；该物料的“策划及审核人”（或维护者）在待办或详情页点“审核通过”转正式发布，或写明原因“驳回”（下架，上传者在待办看到原因）。
+- 网页上传仍走 AI 待处理池 + TClaw 原流程。
+- 主表新增字段：`预发布`（复选框）、`审核意见`（文本）。
+
 ## 本地开发
 
 1. 复制 `.env.example` 的字段到 `.env.local`，真实 App Secret 只保存在本机。
