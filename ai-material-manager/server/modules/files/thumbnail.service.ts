@@ -15,6 +15,7 @@ import {
   type AttachmentLocator,
 } from "@server/common/utils/attachment-locator.util";
 import { FilesService } from "./files.service";
+import { PdfPreviewService } from "./pdf-preview.service";
 
 /**
  * 物料预览缩略图：原图只从飞书下载一次，压成小尺寸 WebP 落盘，之后一直复用。
@@ -70,6 +71,7 @@ export class ThumbnailService implements OnModuleInit {
   constructor(
     private readonly files: FilesService,
     config: ConfigService,
+    private readonly pdf: PdfPreviewService,
   ) {
     this.secret = config.get<string>("SESSION_SECRET") ?? "";
     const uploadDir =
@@ -80,6 +82,7 @@ export class ThumbnailService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     await fs.mkdir(this.cacheDir, { recursive: true });
+    await this.pdf.cleanupInterrupted(this.cacheDir);
   }
 
   /** 生成稳定的缩略图 URL；非飞书附件返回 null */
@@ -90,7 +93,7 @@ export class ThumbnailService implements OnModuleInit {
   ): string | null {
     if (!locatorValue) return null;
     const locator = decodeAttachmentLocator(locatorValue);
-    if (!locator || !isLikelyImage(locator.fileName)) return null;
+    if (!locator || !isPreviewable(locator.fileName)) return null;
     const token = this.sign({ f: locator.fileToken, n: locator.fileName, u: userId });
     return `/api/files/thumb?token=${encodeURIComponent(token)}&w=${width}`;
   }
@@ -136,7 +139,7 @@ export class ThumbnailService implements OnModuleInit {
       if (this.warmQueue.length >= MAX_WARM_QUEUE) break;
       if (!value) continue;
       const locator = decodeAttachmentLocator(value);
-      if (!locator || !isLikelyImage(locator.fileName)) continue;
+      if (!locator || !isPreviewable(locator.fileName)) continue;
       const key = this.cacheKey(locator.fileToken, width);
       if (this.ready.has(key) || this.inFlight.has(key) || this.warmQueued.has(key)) {
         continue;
@@ -213,7 +216,9 @@ export class ThumbnailService implements OnModuleInit {
         await response.body?.cancel().catch(() => undefined);
         return this.markNone(key, `source too large (${length} bytes)`);
       }
-      const source = Buffer.from(await response.arrayBuffer());
+      const source = /\.pdf$/i.test(locator.fileName)
+        ? await this.pdf.render(response, width, this.cacheDir)
+        : Buffer.from(await response.arrayBuffer());
       if (source.byteLength > MAX_SOURCE_BYTES) {
         return this.markNone(key, `source too large (${source.byteLength} bytes)`);
       }
@@ -317,4 +322,14 @@ export function isLikelyImage(fileName: string): boolean {
     ".heic",
     ".heif",
   ].includes(ext);
+}
+
+export function isPreviewable(fileName: string): boolean {
+  return isLikelyImage(fileName) || /\.pdf$/i.test(fileName);
+}
+
+export function selectPreviewSource(values: string[]): string | undefined {
+  const named = values.map((value) => ({ value, name: decodeAttachmentLocator(value)?.fileName ?? "" }));
+  return named.find(({ name }) => name && isLikelyImage(name))?.value
+    ?? named.find(({ name }) => /\.pdf$/i.test(name))?.value;
 }

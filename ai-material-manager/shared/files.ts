@@ -8,6 +8,7 @@ export interface DeliverableFile {
   delivery: DeliveryMode;
   url: string;
   previewUrl: string | null;
+  cloudCopyUrl?: string;
 }
 
 export interface MaterialFilesResponse {

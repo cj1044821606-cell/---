@@ -40,8 +40,9 @@ import {
   type MaterialMainUpdateFields,
 } from "@server/modules/actions/bitable-write.service";
 import { FilesService } from "@server/modules/files/files.service";
-import { ThumbnailService } from "@server/modules/files/thumbnail.service";
+import { ThumbnailService, selectPreviewSource } from "@server/modules/files/thumbnail.service";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
+import { mergeCloudChannels } from "@server/modules/files/cloud-files.util";
 
 interface MaterialAssetMainRow extends Record<string, unknown> {
   baseRecordId: string;
@@ -82,6 +83,9 @@ interface MaterialAssetMainRow extends Record<string, unknown> {
   cloudDiskLinkM: string | null;
   cloudDiskLinkL: string | null;
   cloudDiskLinkS: string | null;
+  cloudFilesM?: CloudFileRef[];
+  cloudFilesL?: CloudFileRef[];
+  cloudFilesS?: CloudFileRef[];
   isLargeFile: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -127,11 +131,6 @@ function isStringArray(value: unknown): value is string[] {
 }
 
 const PRODUCT_MATERIAL: string = "产品物料";
-/**
- * 物料库列表允许读取最多 60 秒前的 Base 快照并在后台刷新（stale-while-revalidate），
- * 避免每 4 秒缓存过期后用户都要等飞书整表分页读取；本应用自身的写入会立即失效缓存。
- */
-const LIBRARY_MAX_STALE_MS: number = 60_000;
 
 export interface MaterialListQuery {
   keyword?: string;
@@ -360,9 +359,7 @@ export class MaterialsService {
     // 服务端强制条件：仅已发布；关键词模糊匹配物料名称/标准命名/产品型号
     const keywordLower = keyword.toLocaleLowerCase();
     const rows = (
-      await this.base.rows<MaterialAssetMainRow>("main", {
-        maxStaleMs: LIBRARY_MAX_STALE_MS,
-      })
+      await this.base.rows<MaterialAssetMainRow>("main")
     ).filter(
       (row) =>
         row.releaseStatus === RELEASE_STATUS.published &&
@@ -436,9 +433,7 @@ export class MaterialsService {
     const identity: Identity = await this.identityService.resolve(userId);
 
     const rows = (
-      await this.base.rows<MaterialAssetMainRow>("main", {
-        maxStaleMs: LIBRARY_MAX_STALE_MS,
-      })
+      await this.base.rows<MaterialAssetMainRow>("main")
     )
       .filter((row) => row.releaseStatus === RELEASE_STATUS.published)
       .sort(
@@ -518,7 +513,8 @@ export class MaterialsService {
 
   /** 封面主图：预览图优先，其次封面图，与前端降级链一致 */
   private primaryImage(row: MaterialAssetMainRow): string | undefined {
-    return row.previewFileS?.[0] ?? row.coverImage?.[0];
+    const candidates = [...(row.previewFileS ?? []), ...(row.coverImage ?? []), ...(row.currentValidAttachment ?? [])];
+    return selectPreviewSource(candidates);
   }
 
   private mapMaterialListItem(
@@ -700,9 +696,9 @@ export class MaterialsService {
     }
 
     const cloudLinks = {
-      m: this.parseCloudDiskLinks(material.cloudDiskLinkM),
-      l: this.parseCloudDiskLinks(material.cloudDiskLinkL),
-      s: this.parseCloudDiskLinks(material.cloudDiskLinkS),
+      m: material.cloudFilesM ?? this.parseCloudDiskLinks(material.cloudDiskLinkM),
+      l: material.cloudFilesL ?? this.parseCloudDiskLinks(material.cloudDiskLinkL),
+      s: material.cloudFilesS ?? this.parseCloudDiskLinks(material.cloudDiskLinkS),
     };
 
     const files: DeliverableFile[] = [];
@@ -899,69 +895,25 @@ export class MaterialsService {
       userId,
     } = params;
 
-    if (attachments.length > 0) {
-      if (isLargeFile && cloudLinkRefs.length > 0) {
-        for (const ref of cloudLinkRefs) {
-          files.push({
-            kind: tier,
-            fileName: ref.fileName,
-            sizeBytes: null,
-            mimeType: null,
-            delivery: "external",
-            url: ref.link,
-            previewUrl: null,
-          });
-        }
-      } else {
-        for (let i: number = 0; i < attachments.length; i++) {
-          const att: string = attachments[i];
-          const fileName: string = this.filesService.getAttachmentName(att);
-          const url = this.filesService.makeMediaUrl(
-            att,
-            userId,
-            "attachment",
-          );
-          if (!url) continue;
-          files.push({
-            kind: tier,
-            fileName,
-            sizeBytes: null,
-            mimeType: null,
-            delivery: "direct",
-            url,
-            previewUrl: this.filesService.makeMediaUrl(att, userId),
-          });
-        }
-        // 非大文件时，云盘链接作为补充下载渠道
-        if (!isLargeFile && cloudLinkRefs.length > 0) {
-          for (const ref of cloudLinkRefs) {
-            files.push({
-              kind: tier,
-              fileName: `${ref.fileName}（云盘直链）`,
-              sizeBytes: null,
-              mimeType: null,
-              delivery: "external",
-              url: ref.link,
-              previewUrl: null,
-            });
-          }
-        }
-      }
-    } else if (cloudLinkRefs.length > 0) {
-      for (const ref of cloudLinkRefs) {
-        files.push({
-          kind: tier,
-          fileName: ref.fileName,
-          sizeBytes: null,
-          mimeType: null,
-          delivery: "external",
-          url: ref.link,
-          previewUrl: null,
-        });
-      }
-    } else {
-      missing[tier] = missingReason;
+    const direct: DeliverableFile[] = [];
+    for (const att of [...new Set(attachments)]) {
+      const url = this.filesService.makeMediaUrl(att, userId, "attachment");
+      if (url) direct.push({
+        kind: tier, fileName: this.filesService.getAttachmentName(att),
+        sizeBytes: null, mimeType: null, delivery: "direct", url,
+        previewUrl: this.filesService.makeMediaUrl(att, userId),
+      });
     }
+    const merged = mergeCloudChannels(direct, cloudLinkRefs).map((file) => ({ ...file, kind: tier }));
+    for (const file of merged) {
+      if (isLargeFile && file.cloudCopyUrl) {
+        file.url = file.cloudCopyUrl;
+        file.delivery = "external";
+        delete file.cloudCopyUrl;
+      }
+      files.push(file);
+    }
+    if (merged.length === 0) missing[tier] = missingReason;
   }
 
   private parseCloudDiskLinks(raw: string | null | undefined): CloudFileRef[] {

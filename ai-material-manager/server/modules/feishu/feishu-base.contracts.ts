@@ -36,7 +36,8 @@ export type FieldKind =
   | "userProfiles"
   | "link"
   | "attachment"
-  | "mentionLinks";
+  | "mentionLinks"
+  | "mentionFiles";
 
 export interface FieldContract {
   source: string;
@@ -90,6 +91,9 @@ const main: FieldContract[] = [
   { source: "云盘链接M", target: "cloudDiskLinkM", kind: "mentionLinks" },
   { source: "云盘链接L", target: "cloudDiskLinkL", kind: "mentionLinks" },
   { source: "云盘链接S", target: "cloudDiskLinkS", kind: "mentionLinks" },
+  { source: "云盘链接M", target: "cloudFilesM", kind: "mentionFiles" },
+  { source: "云盘链接L", target: "cloudFilesL", kind: "mentionFiles" },
+  { source: "云盘链接S", target: "cloudFilesS", kind: "mentionFiles" },
   { source: "是否大文件", target: "isLargeFile", kind: "boolean" },
 ];
 

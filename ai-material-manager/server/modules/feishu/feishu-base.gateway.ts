@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { encodeAttachmentLocator } from "@server/common/utils/attachment-locator.util";
 import { FeishuService } from "./feishu.service";
+import { parseCloudFiles } from "@server/modules/files/cloud-files.util";
 import {
   BASE_FIELD_CONTRACTS,
   BASE_TABLE_IDS,
@@ -226,6 +227,8 @@ export class FeishuBaseGateway {
         return this.toAttachments(value);
       case "mentionLinks":
         return this.toMentionLinks(value);
+      case "mentionFiles":
+        return parseCloudFiles(value);
     }
   }
 
