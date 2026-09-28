@@ -213,9 +213,19 @@ export const MoreOpsView: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className={contentClass}>
-              {!data.qrAlert ? (
+              {data.qrAlert.status === "unavailable" ? (
                 <EmptyCell text={pt("more.ops.qr.none")} />
-              ) : data.qrAlert.expiring ? (
+              ) : data.qrAlert.status === "expired" ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-md bg-destructive-soft px-3 py-2 text-sm text-destructive">
+                  <TriangleAlert className="size-4 shrink-0" />
+                  {pt("more.ops.qr.expired")}
+                  {expiryText ? (
+                    <span className="font-mono text-xs">
+                      {pt("more.ops.qr.expiry")} {expiryText}
+                    </span>
+                  ) : null}
+                </div>
+              ) : data.qrAlert.status === "expiring" ? (
                 <div className="flex flex-wrap items-center gap-2 rounded-md bg-warning-soft px-3 py-2 text-sm text-warning-text">
                   <TriangleAlert className="size-4 shrink-0" />
                   {pt("more.ops.qr.expiring")}

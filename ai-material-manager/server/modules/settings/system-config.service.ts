@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import type { Cache } from "cache-manager";
-import type { SystemSettings } from "@shared/settings";
+import { getGroupQrStatus, type SystemSettings } from "@shared/settings";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
 import { FilesService } from "@server/modules/files/files.service";
 
@@ -15,7 +15,7 @@ export interface SystemConfigRecord {
 }
 
 const SETTINGS_CACHE_KEY = "system-settings:global";
-const SETTINGS_CACHE_TTL_MS: number = 5 * 60 * 1000;
+const SETTINGS_CACHE_TTL_MS: number = 60 * 1000;
 const DEFAULT_SYNC_DELAY_HINT = "内容同步可能有几秒延迟，稍后刷新即可看到";
 
 @Injectable()
@@ -50,13 +50,24 @@ export class SystemConfigService {
       byKey.get("upload_form_url");
     const syncHint: SystemConfigRecord | undefined =
       byKey.get("sync_delay_hint");
+    const qrExpiry: number | null = qr?.expiryMs ?? null;
+    const groupQrStatus = getGroupQrStatus(
+      qr?.enabled === true,
+      Boolean(qr?.imageUrls[0]),
+      qrExpiry,
+    );
 
     return {
-      groupQrUrl: qr?.imageUrls[0]
-        ? this.files.makeMediaUrl(qr.imageUrls[0], userId)
-        : null,
+      groupQrUrl:
+        qr?.imageUrls[0] &&
+        (groupQrStatus === "available" || groupQrStatus === "expiring")
+          ? this.files.makeMediaUrl(qr.imageUrls[0], userId)
+          : null,
       groupQrExpiry:
-        qr?.expiryMs != null ? new Date(qr.expiryMs).toISOString() : null,
+        qrExpiry != null && Number.isFinite(qrExpiry)
+          ? new Date(qrExpiry).toISOString()
+          : null,
+      groupQrStatus,
       uploadFormUrl: uploadForm?.textValue ?? null,
       syncDelayHint: syncHint?.textValue || DEFAULT_SYNC_DELAY_HINT,
     };
@@ -72,7 +83,7 @@ export class SystemConfigService {
       enabled: boolean;
     } & Record<string, unknown>>("config");
     return rows
-      .filter((row) => Boolean(row.key))
+      .filter((row) => Boolean(row.key) && row.enabled === true)
       .map((row) => ({
         key: row.key as string,
         name: row.name,

@@ -1,3 +1,5 @@
+import type { GroupQrStatus } from "./settings";
+
 export interface OpsStuckItem {
   id: string;
   originalFileName: string;
@@ -12,7 +14,7 @@ export interface OpsOverdueItem {
 }
 
 export interface OpsQrAlert {
-  expiring: boolean;
+  status: GroupQrStatus;
   expiry: string | null;
 }
 
@@ -24,6 +26,6 @@ export interface OpsHealthItem {
 export interface OpsResponse {
   stuck: OpsStuckItem[];
   overdueConfirm: OpsOverdueItem[];
-  qrAlert: OpsQrAlert | null;
+  qrAlert: OpsQrAlert;
   health: OpsHealthItem[];
 }

@@ -14,7 +14,6 @@ import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
 
 const STUCK_RETRY_THRESHOLD: number = 3;
 const OVERDUE_DAYS_THRESHOLD: number = 3;
-const QR_EXPIRING_WINDOW_MS: number = 3 * 24 * 60 * 60 * 1000;
 const DAY_MS: number = 24 * 60 * 60 * 1000;
 
 interface StuckRow {
@@ -53,7 +52,7 @@ export class OpsService {
       this.findOverdueConfirm(),
       this.buildHealth(),
     ]);
-    const qrAlert: OpsQrAlert | null = await this.buildQrAlert(userId);
+    const qrAlert: OpsQrAlert = await this.buildQrAlert(userId);
 
     return { stuck, overdueConfirm, qrAlert, health };
   }
@@ -101,21 +100,10 @@ export class OpsService {
     return items;
   }
 
-  private async buildQrAlert(userId: string): Promise<OpsQrAlert | null> {
+  private async buildQrAlert(userId: string): Promise<OpsQrAlert> {
     const settings: SystemSettings =
       await this.systemConfigService.getSettings(userId);
-    if (!settings.groupQrUrl && !settings.groupQrExpiry) {
-      return null;
-    }
-
-    let expiring = false;
-    if (settings.groupQrExpiry) {
-      const expiryMs: number = new Date(settings.groupQrExpiry).getTime();
-      expiring =
-        Number.isFinite(expiryMs) &&
-        expiryMs - Date.now() <= QR_EXPIRING_WINDOW_MS;
-    }
-    return { expiring, expiry: settings.groupQrExpiry };
+    return { status: settings.groupQrStatus, expiry: settings.groupQrExpiry };
   }
 
   private async buildHealth(): Promise<OpsHealthItem[]> {

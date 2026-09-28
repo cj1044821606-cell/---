@@ -56,5 +56,13 @@ export const dictionary: Record<string, DictEntry> = {
     zh: "请联系管理员获取群二维码",
     en: "Please contact the admin for the group QR code",
   },
+  "groupGuide.qrExpired": {
+    zh: "群二维码已过期，请联系管理员更新",
+    en: "The group QR code has expired. Please contact the admin.",
+  },
+  "groupGuide.unavailable": {
+    zh: "二维码暂不可用",
+    en: "QR code unavailable",
+  },
   "groupGuide.confirm": { zh: "我已进群", en: "I have joined" },
 };
