@@ -314,8 +314,8 @@ export class FeishuBaseGateway {
   }
 
   private toLinkIds(value: unknown): string[] {
-    if (!Array.isArray(value)) return [];
-    const ids = value.flatMap((item): string[] => {
+    const items = Array.isArray(value) ? value : [value];
+    const ids = items.flatMap((item): string[] => {
       if (typeof item === "string") return [item];
       if (!item || typeof item !== "object") return [];
       const record = item as Record<string, unknown>;

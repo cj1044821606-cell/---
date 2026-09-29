@@ -53,6 +53,17 @@ describe("FeishuBaseGateway parsing contracts", () => {
       ]),
     ).toEqual(["rec_current", "rec_legacy"]);
   });
+
+  it("extracts link_record_ids from the official SDK normalized link shape", () => {
+    const parse = (
+      gateway as unknown as { toLinkIds(value: unknown): string[] }
+    ).toLinkIds.bind(gateway);
+
+    expect(parse({ link_record_ids: ["rec_legacy", "rec_current"] })).toEqual([
+      "rec_legacy",
+      "rec_current",
+    ]);
+  });
 });
 
 describe("FeishuBaseGateway stale-while-revalidate", () => {
