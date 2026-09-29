@@ -43,6 +43,7 @@ import { FilesService } from "@server/modules/files/files.service";
 import { ThumbnailService, selectPreviewSource } from "@server/modules/files/thumbnail.service";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
 import { mergeCloudChannels } from "@server/modules/files/cloud-files.util";
+import { selectVersionHistory } from "./version-history.util";
 
 interface MaterialAssetMainRow extends Record<string, unknown> {
   baseRecordId: string;
@@ -100,6 +101,8 @@ interface VersionRecordRow extends Record<string, unknown> {
   versionType: string | null;
   versionStatus: string | null;
   isCurrentValid: boolean;
+  compareOldVersion?: unknown;
+  replacementVersion?: unknown;
   publishTime: Date | null;
   aiComparisonSummary: string | null;
   modifyReason: string | null;
@@ -188,18 +191,14 @@ export class MaterialsService {
     );
 
     const allVersionRows = await this.base.rows<VersionRecordRow>("version");
-    const versionRows: VersionRecordRow[] = material.appInternalMaterialId
-      ? allVersionRows
-          .filter(
-            (row) =>
-              row.appInternalMaterialId === material.appInternalMaterialId,
-          )
-          .sort(
-            (a, b) =>
-              (b.createTime?.getTime() ?? 0) -
-              (a.createTime?.getTime() ?? 0),
-          )
-      : [];
+    const versionRows = selectVersionHistory(
+      allVersionRows,
+      material.appInternalMaterialId,
+      extractLinkRecordIds(material.versionRecord),
+    ).sort(
+      (a, b) =>
+        (b.createTime?.getTime() ?? 0) - (a.createTime?.getTime() ?? 0),
+    );
 
     const receiveRows = (await this.base.rows<UserReceiveRow>("receive")).filter(
       (row) => row.receiveDownloadPerson === userId,
