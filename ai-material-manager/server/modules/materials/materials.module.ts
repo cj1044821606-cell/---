@@ -10,5 +10,6 @@ import { MaterialsService } from "./materials.service";
   imports: [IdentityModule, ActionsModule, FilesModule],
   controllers: [MaterialsController, MaterialKitsController],
   providers: [MaterialsService],
+  exports: [MaterialsService],
 })
 export class MaterialsModule {}

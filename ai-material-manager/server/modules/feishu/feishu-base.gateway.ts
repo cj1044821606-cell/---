@@ -150,6 +150,23 @@ export class FeishuBaseGateway {
     });
   }
 
+  /** 仅用于多步写入失败时回滚本次新建的记录 */
+  async deleteRecord(table: BaseTableKey, recordId: string): Promise<void> {
+    await this.enqueueWrite(table, async () => {
+      const response = await this.callWithRetry(() =>
+        this.feishu.client.bitable.appTableRecord.delete({
+          path: {
+            app_token: this.appToken,
+            table_id: BASE_TABLE_IDS[table],
+            record_id: recordId,
+          },
+        }),
+      );
+      this.assertResponse(response.code, response.msg, "delete", table);
+      this.invalidate(table);
+    });
+  }
+
   invalidate(table: BaseTableKey): void {
     this.cache.delete(table);
   }

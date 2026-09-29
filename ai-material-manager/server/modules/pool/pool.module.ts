@@ -7,5 +7,6 @@ import { UploadQuotaService } from "./upload-quota.service";
 @Module({
   controllers: [PoolController],
   providers: [PoolService, UploadQuotaService, UploadIngressService],
+  exports: [PoolService, UploadIngressService],
 })
 export class PoolModule {}

@@ -13,6 +13,8 @@ import { ActionsModule } from './modules/actions/actions.module';
 import { MyModule } from './modules/my/my.module';
 import { OpsModule } from './modules/ops/ops.module';
 import { PoolModule } from './modules/pool/pool.module';
+import { AgentModule } from './modules/agent/agent.module';
+import { PrereleaseModule } from './modules/prerelease/prerelease.module';
 import { FeishuModule } from './modules/feishu/feishu.module';
 import { ViewModule } from './modules/view/view.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -39,6 +41,8 @@ import { HealthModule } from './modules/health/health.module';
     MyModule,
     OpsModule,
     PoolModule,
+    PrereleaseModule,
+    AgentModule,
     // ====== @route-section: business-modules END ======
 
     // ⚠️ @route-order: last

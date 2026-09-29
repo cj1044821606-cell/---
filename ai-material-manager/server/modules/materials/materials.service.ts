@@ -88,6 +88,7 @@ interface MaterialAssetMainRow extends Record<string, unknown> {
   cloudFilesL?: CloudFileRef[];
   cloudFilesS?: CloudFileRef[];
   isLargeFile: boolean;
+  isPrerelease: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -280,6 +281,10 @@ export class MaterialsService {
         material.plannerApprover === userId) ||
       (material.designer !== null && material.designer === userId);
 
+    const canReviewPrerelease: boolean =
+      detail.isPrerelease &&
+      (material.plannerApprover === userId || identity.isMaintainer);
+
     return {
       material: detail,
       versions,
@@ -287,6 +292,7 @@ export class MaterialsService {
       subscribedByMe,
       receivedByMe,
       canRetire,
+      canReviewPrerelease,
     };
   }
 
@@ -540,6 +546,7 @@ export class MaterialsService {
       coverUrl: this.filesService.makeMediaUrl(row.coverImage?.[0], userId),
       thumbUrl: this.thumbnails.makeThumbUrl(this.primaryImage(row), userId),
       isLargeFile: row.isLargeFile ?? false,
+      isPrerelease: row.isPrerelease ?? false,
     };
   }
 

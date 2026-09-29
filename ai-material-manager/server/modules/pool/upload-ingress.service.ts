@@ -15,7 +15,11 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { chunkPath, normalizeUploadId } from "./upload-staging";
+import {
+  assembleUploadChunks,
+  chunkPath,
+  normalizeUploadId,
+} from "./upload-staging";
 import { UploadQuotaService } from "./upload-quota.service";
 
 export const BROWSER_CHUNK_SIZE = 4 * 1024 * 1024;
@@ -38,6 +42,15 @@ export interface ReceivedUpload {
   isChunked: boolean;
   chunkTotal: number;
   chunkIndex: number;
+}
+
+export interface DeclaredUpload {
+  fileName: string;
+  expectedSize: number;
+  uploadId: string;
+  /** 整文件上传时为 null */
+  chunkIndex: number | null;
+  chunkSize: number;
 }
 
 interface ParsedMetadata {
@@ -143,8 +156,27 @@ export class UploadIngressService implements OnModuleInit, OnModuleDestroy {
   }
 
   async receive(req: Request, userId: string): Promise<ReceivedUpload> {
+    return this.receiveParsed(req, userId, this.parseMetadata(req));
+  }
+
+  /**
+   * Agent 上传：文件名、大小、uploadId 来自服务端签发的上传凭证而不是请求头，
+   * 分片也可以更大（仍需低于 Cloudflare 单请求 100MB 上限），减少命令行上传的请求次数。
+   */
+  async receiveDeclared(
+    req: Request,
+    userId: string,
+    declared: DeclaredUpload,
+  ): Promise<ReceivedUpload> {
+    return this.receiveParsed(req, userId, this.declaredMetadata(req, declared));
+  }
+
+  private async receiveParsed(
+    req: Request,
+    userId: string,
+    metadata: ParsedMetadata,
+  ): Promise<ReceivedUpload> {
     await fs.mkdir(this.incomingDir, { recursive: true });
-    const metadata = this.parseMetadata(req);
     const manifest = await this.readManifest(metadata.uploadId);
 
     if (manifest) {
@@ -226,6 +258,33 @@ export class UploadIngressService implements OnModuleInit, OnModuleDestroy {
       await fs.unlink(temporaryPath).catch(() => undefined);
       throw error;
     }
+  }
+
+  /** 分片可能乱序/并发到达：由调用方在全部到齐后再组装 */
+  async missingChunks(uploadId: string, chunkTotal: number): Promise<number[]> {
+    const missing: number[] = [];
+    for (let index = 0; index < chunkTotal; index += 1) {
+      try {
+        await fs.access(chunkPath(this.incomingDir, uploadId, index));
+      } catch {
+        missing.push(index);
+      }
+    }
+    return missing;
+  }
+
+  async assemble(
+    uploadId: string,
+    chunkTotal: number,
+    expectedSize: number,
+  ): Promise<{ filePath: string; fileSize: number }> {
+    await this.ensureAssemblySpace(expectedSize);
+    return assembleUploadChunks({
+      incomingDir: this.incomingDir,
+      uploadId,
+      chunkTotal,
+      expectedSize,
+    });
   }
 
   async ensureAssemblySpace(expectedSize: number): Promise<void> {
@@ -347,6 +406,58 @@ export class UploadIngressService implements OnModuleInit, OnModuleDestroy {
     const expectedChunkSize = Math.min(
       BROWSER_CHUNK_SIZE,
       expectedSize - start,
+    );
+    this.assertContentLength(req, expectedChunkSize);
+    return {
+      fileName,
+      expectedSize,
+      uploadId,
+      isChunked: true,
+      chunkTotal,
+      chunkIndex,
+      expectedChunkSize,
+    };
+  }
+
+  private declaredMetadata(
+    req: Request,
+    declared: DeclaredUpload,
+  ): ParsedMetadata {
+    const { fileName, expectedSize, uploadId, chunkIndex, chunkSize } = declared;
+    if (expectedSize > this.maxUploadBytes) {
+      throw new PayloadTooLargeException(
+        `单个文件不能超过 ${Math.floor(this.maxUploadBytes / 1024 / 1024)}MB`,
+      );
+    }
+    const chunkTotal = Math.ceil(expectedSize / chunkSize);
+    if (chunkTotal <= 1) {
+      if (chunkIndex !== null && chunkIndex !== 0) {
+        throw new BadRequestException("该文件无需分片，请直接上传整个文件");
+      }
+      this.assertContentLength(req, expectedSize);
+      return {
+        fileName,
+        expectedSize,
+        uploadId,
+        isChunked: false,
+        chunkTotal: 1,
+        chunkIndex: 0,
+        expectedChunkSize: expectedSize,
+      };
+    }
+    if (
+      chunkIndex === null ||
+      !Number.isSafeInteger(chunkIndex) ||
+      chunkIndex < 0 ||
+      chunkIndex >= chunkTotal
+    ) {
+      throw new BadRequestException(
+        `该文件需分 ${chunkTotal} 片上传，请带上 X-Chunk-Index（0 到 ${chunkTotal - 1}）`,
+      );
+    }
+    const expectedChunkSize = Math.min(
+      chunkSize,
+      expectedSize - chunkIndex * chunkSize,
     );
     this.assertContentLength(req, expectedChunkSize);
     return {

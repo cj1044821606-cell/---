@@ -146,10 +146,10 @@ const LibraryFilterBar: React.FC<LibraryFilterBarProps> = ({
     <div ref={sentinelRef} aria-hidden="true" className="h-px" />
     <section
       className={cn(
-        "mb-4 flex flex-wrap items-center gap-2.5 bg-background transition-shadow duration-150",
+        "mb-4 flex flex-wrap items-center gap-2.5 transition-shadow duration-150",
         sticky &&
           "md:sticky md:top-14 md:z-20 md:-mx-8 md:px-8 md:py-3",
-        sticky && stuck && "md:border-b md:border-border md:shadow-[0_6px_12px_-10px_rgba(16,24,40,0.25)]",
+        sticky && stuck && "md:border-b md:border-border md:bg-background/90 md:shadow-[0_6px_12px_-10px_rgba(16,24,40,0.25)] md:backdrop-blur-md",
       )}
     >
       <div className="relative w-full min-w-[240px] sm:w-auto sm:max-w-[400px] sm:flex-1">

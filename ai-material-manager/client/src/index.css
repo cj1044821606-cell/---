@@ -5,3 +5,14 @@
 
 @source "../../node_modules/streamdown/dist/*.js";
 @config "../../tailwind.config.ts";
+
+/* 品牌渐变：亮蓝 → 紫 → 珊瑚，用于 Logo、选中态、教程头图等少量点睛处 */
+@utility bg-brand {
+  background-image: var(--brand-gradient);
+}
+
+@utility text-brand {
+  background-image: var(--brand-gradient);
+  background-clip: text;
+  color: transparent;
+}

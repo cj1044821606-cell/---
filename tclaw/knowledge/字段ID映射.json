@@ -161,6 +161,16 @@
     "name": "领取记录",
     "id": "fld14AN3dJ",
     "type": "link"
+   },
+   {
+    "name": "预发布",
+    "id": "fldyoSSOcW",
+    "type": "checkbox"
+   },
+   {
+    "name": "审核意见",
+    "id": "fldcuH3h1Y",
+    "type": "text"
    }
   ]
  },

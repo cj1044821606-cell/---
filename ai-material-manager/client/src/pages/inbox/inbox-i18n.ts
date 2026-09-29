@@ -82,6 +82,14 @@ export const INBOX_I18N: Record<string, InboxI18nEntry> = {
     zh: "问题反馈等你处理",
     en: "Issue feedback waiting for you",
   },
+  "inbox.prereleaseReview.title": {
+    zh: "预发布物料等你审核",
+    en: "Pre-release waiting for your review",
+  },
+  "inbox.prereleaseRejected.title": {
+    zh: "你预发布的物料被驳回",
+    en: "Your pre-release was rejected",
+  },
   "inbox.stuck.title": {
     zh: "AI 处理卡住了，需要人工介入",
     en: "AI processing stuck, needs manual care",
@@ -97,6 +105,10 @@ export const INBOX_I18N: Record<string, InboxI18nEntry> = {
   "inbox.versionReplaced.cta": { zh: "去飞书查看", en: "View in Feishu" },
   "inbox.problemHandle.cta": { zh: "去飞书处理", en: "Handle in Feishu" },
   "inbox.stuck.cta": { zh: "去飞书排查", en: "Inspect in Feishu" },
+  "inbox.prereleaseReview.cta": { zh: "查看物料", en: "Open material" },
+  "inbox.prereleaseRejected.cta": { zh: "查看物料", en: "Open material" },
+  "inbox.quote.prereleaseReview": { zh: "说明", en: "Note" },
+  "inbox.quote.prereleaseRejected": { zh: "驳回原因", en: "Reason" },
 
   // 字段 label
   "inbox.field.originalFileName": { zh: "原始文件名", en: "Original file" },
@@ -109,6 +121,7 @@ export const INBOX_I18N: Record<string, InboxI18nEntry> = {
   "inbox.field.materialType": { zh: "物料类型", en: "Material type" },
   "inbox.field.productModel": { zh: "产品型号", en: "Product model" },
   "inbox.field.currentVersion": { zh: "当前版本", en: "Current version" },
+  "inbox.field.standardName": { zh: "标准命名", en: "Standard name" },
   "inbox.field.receiveRecord": { zh: "领取记录", en: "Download record" },
   "inbox.field.downloadTime": { zh: "领取时间", en: "Download time" },
   "inbox.field.problemTitle": { zh: "问题标题", en: "Issue title" },

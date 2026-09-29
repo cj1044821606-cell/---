@@ -489,6 +489,7 @@ const LibraryPage: React.FC = () => {
                     productModel={item.productModel}
                     appLanguage={item.appLanguage}
                     isRecommended={item.isRecommended}
+                    isPrerelease={item.isPrerelease}
                     priority={index < PRIORITY_CARD_COUNT}
                     language={language}
                   />
