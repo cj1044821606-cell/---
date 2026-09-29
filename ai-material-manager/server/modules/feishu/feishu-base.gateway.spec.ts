@@ -36,6 +36,23 @@ describe("FeishuBaseGateway parsing contracts", () => {
     expect(locator).toContain("feishu-media:");
     expect(locator).not.toContain("open.feishu.cn/open-apis/drive");
   });
+
+  it("extracts all record_ids from the linked-record shape returned by Bitable", () => {
+    const parse = (
+      gateway as unknown as { toLinkIds(value: unknown): string[] }
+    ).toLinkIds.bind(gateway);
+
+    expect(
+      parse([
+        {
+          record_ids: ["rec_current", "rec_legacy"],
+          table_id: "tbl_version",
+          text: "V2.0",
+        },
+        { record_ids: null, table_id: "tbl_version" },
+      ]),
+    ).toEqual(["rec_current", "rec_legacy"]);
+  });
 });
 
 describe("FeishuBaseGateway stale-while-revalidate", () => {

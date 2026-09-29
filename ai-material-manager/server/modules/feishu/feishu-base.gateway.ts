@@ -315,17 +315,24 @@ export class FeishuBaseGateway {
 
   private toLinkIds(value: unknown): string[] {
     if (!Array.isArray(value)) return [];
-    return value
-      .map((item) => {
-        if (typeof item === "string") return item;
-        if (!item || typeof item !== "object") return null;
-        const record = item as Record<string, unknown>;
-        for (const key of ["record_id", "recordId", "id"]) {
-          if (typeof record[key] === "string") return record[key] as string;
+    const ids = value.flatMap((item): string[] => {
+      if (typeof item === "string") return [item];
+      if (!item || typeof item !== "object") return [];
+      const record = item as Record<string, unknown>;
+      for (const key of ["record_ids", "link_record_ids"]) {
+        const linkedIds = record[key];
+        if (Array.isArray(linkedIds)) {
+          return linkedIds.filter(
+            (id): id is string => typeof id === "string" && id.length > 0,
+          );
         }
-        return null;
-      })
-      .filter((id): id is string => Boolean(id));
+      }
+      for (const key of ["record_id", "recordId", "id"]) {
+        if (typeof record[key] === "string") return [record[key] as string];
+      }
+      return [];
+    });
+    return [...new Set(ids)];
   }
 
   private toAttachments(value: unknown): string[] {
