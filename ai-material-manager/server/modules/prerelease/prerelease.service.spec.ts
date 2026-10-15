@@ -1,6 +1,7 @@
 import type { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
 import type { IdentityService } from "@server/modules/identity/identity.service";
 import type { GuidedNamingInput } from "@shared/naming";
+import { encodeAttachmentLocator } from "@server/common/utils/attachment-locator.util";
 import {
   PrereleaseService,
   suggestNextVersions,
@@ -19,6 +20,7 @@ class FakeBase {
   };
   writes: string[] = [];
   failOn: string | null = null;
+  afterWrite: ((table: string, fields: Fields) => void) | null = null;
   private seq = 0;
 
   userField = (ids: string[]): Array<{ id: string }> => ids.map((id) => ({ id }));
@@ -31,6 +33,7 @@ class FakeBase {
     const stored: Fields = { ...fields };
     if (table === "main") stored["内部物料ID"] = `MAT-${String(this.seq).padStart(4, "0")}`;
     this.tables[table]!.set(id, stored);
+    this.afterWrite?.(table, stored);
     return id;
   }
 
@@ -40,6 +43,7 @@ class FakeBase {
     const row = this.tables[table]!.get(id);
     if (!row) throw new Error(`missing ${id}`);
     Object.assign(row, fields);
+    this.afterWrite?.(table, row);
     return id;
   }
 
@@ -67,6 +71,9 @@ class FakeBase {
   }
 
   private map(table: string, id: string, f: Fields): Fields {
+    const files = (name: string): string[] =>
+      ((f[name] ?? []) as Array<{ file_token: string }>).map((file) =>
+        encodeAttachmentLocator({ fileToken: file.file_token, fileName: `${file.file_token}.pdf` }));
     if (table === "main") {
       const planner = f["策划及审核人"] as Array<{ id: string }> | undefined;
       return {
@@ -78,6 +85,10 @@ class FakeBase {
         appMaterialId: f["物料ID"] ?? null,
         appInternalMaterialId: f["内部物料ID"] ?? null,
         isPrerelease: f["预发布"] === true,
+        designer: (f["设计师"] as Array<{ id: string }> | undefined)?.[0]?.id ?? null,
+        currentValidAttachment: files("当前有效附件"),
+        sourceFileL: files("源文件(L)"),
+        previewFileS: files("预览文件(S)"),
       };
     }
     return {
@@ -85,6 +96,9 @@ class FakeBase {
       relatedMaterial: { link_record_ids: (f["关联物料"] as string[]) ?? [] },
       isCurrentValid: f["是否当前有效"] === true,
       auditStatus: f["审核状态"] ?? null,
+      currentVersionAttachment: files("本版附件"),
+      sourceFileL: files("源文件(L)"),
+      previewFileS: files("预览文件(S)"),
     };
   }
 }
@@ -245,6 +259,40 @@ describe("PrereleaseService", () => {
     expect(base.tables.main!.size).toBe(0);
     expect(base.tables.version!.size).toBe(0);
     expect(base.writes.slice(-2)).toEqual(["delete:version", "delete:main"]);
+  });
+
+  it.each(["当前有效附件", "源文件(L)", "预览文件(S)", "策划及审核人", "设计师"])(
+    "blocks publication when a pool-sync workflow clears %s", async (field) => {
+      base.afterWrite = (table) => {
+        if (table === "release") for (const row of base.tables.main!.values()) row[field] = [];
+      };
+      await expect(service.publish("ou_uploader", input({
+        designerId: "ou_designer",
+        sourceFiles: [{ fileToken: "tok_l", size: 378000000 }],
+        previewFiles: [{ fileToken: "tok_s", size: 477227 }],
+      }))).rejects.toThrow(/关联完整性校验失败/u);
+      expect(base.tables.main!.size).toBe(0);
+      expect(base.writes).not.toContain("update:version");
+    },
+  );
+
+  it("checks version file tokens, not just attachment counts", async () => {
+    base.afterWrite = (table, row) => {
+      if (table === "version") row["本版附件"] = [{ file_token: "unrelated" }];
+    };
+    await expect(service.publish("ou_uploader", input())).rejects.toThrow(/版本导出件 M/u);
+    expect(base.tables.main!.size).toBe(0);
+  });
+
+  it("retains record IDs instead of deleting after a go-live verification failure", async () => {
+    base.afterWrite = (table, row) => {
+      if (table === "main" && row["发布状态"] === "已发布") row["当前有效附件"] = [];
+    };
+    await expect(service.publish("ou_uploader", input())).rejects.toThrow(/不要重新发布/u);
+    expect(base.tables.main!.size).toBe(1);
+    expect(base.tables.version!.size).toBe(1);
+    expect(base.tables.release!.size).toBe(1);
+    expect(base.writes.some((write) => write.startsWith("delete:"))).toBe(false);
   });
 
   it("rejects incomplete naming before writing anything", async () => {

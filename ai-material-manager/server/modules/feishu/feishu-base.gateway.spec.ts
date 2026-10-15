@@ -1,4 +1,5 @@
 import { FeishuBaseGateway } from "./feishu-base.gateway";
+import { decodeAttachmentLocator, encodeAttachmentLocator } from "@server/common/utils/attachment-locator.util";
 
 describe("FeishuBaseGateway parsing contracts", () => {
   const gateway = Object.create(
@@ -30,11 +31,19 @@ describe("FeishuBaseGateway parsing contracts", () => {
       gateway as unknown as { toAttachments(value: unknown): string[] }
     ).toAttachments.bind(gateway);
     const [locator] = parse([
-      { file_token: "boxcn-file", name: "source.ai", size: 100 },
+      { file_token: "boxcn-file", name: "source.ai", size: 100, type: "application/pdf" },
     ]);
 
     expect(locator).toContain("feishu-media:");
     expect(locator).not.toContain("open.feishu.cn/open-apis/drive");
+    expect(decodeAttachmentLocator(locator!)).toEqual({
+      fileToken: "boxcn-file", fileName: "source.ai", sizeBytes: 100, mimeType: "application/pdf",
+    });
+  });
+
+  it("accepts old locators without optional metadata", () => {
+    const value = { fileToken: "old-token", fileName: "old.pdf" };
+    expect(decodeAttachmentLocator(encodeAttachmentLocator(value))).toEqual(value);
   });
 
   it("extracts all record_ids from the linked-record shape returned by Bitable", () => {

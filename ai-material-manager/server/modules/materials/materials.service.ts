@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import type { Identity } from "@shared/identity";
+import { decodeAttachmentLocator } from "@server/common/utils/attachment-locator.util";
 import type { CloudFileRef, DeliverableFile, KitFilesResponse, MaterialFilesResponse } from "@shared/files";
 import type {
   MaterialDetail,
@@ -903,10 +904,11 @@ export class MaterialsService {
 
     const direct: DeliverableFile[] = [];
     for (const att of [...new Set(attachments)]) {
+      const metadata = decodeAttachmentLocator(att);
       const url = this.filesService.makeMediaUrl(att, userId, "attachment");
       if (url) direct.push({
         kind: tier, fileName: this.filesService.getAttachmentName(att),
-        sizeBytes: null, mimeType: null, delivery: "direct", url,
+        sizeBytes: metadata?.sizeBytes ?? null, mimeType: metadata?.mimeType ?? null, delivery: "direct", url,
         previewUrl: this.filesService.makeMediaUrl(att, userId),
       });
     }

@@ -7,6 +7,14 @@ import {
 describe("SystemConfigService group QR availability", () => {
   const now = new Date("2026-09-28T00:00:00+08:00").getTime();
 
+  beforeEach(() => {
+    jest.spyOn(Date, "now").mockReturnValue(now);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   function createService(rows: SystemConfigRecord[]) {
     const base = { rows: jest.fn(async () => rows) };
     const files = { makeMediaUrl: jest.fn((token: string) => `/media/${token}`) };

@@ -555,7 +555,7 @@ export class McpServerFactory {
           allowExternalSend: z.boolean().describe("是否允许发给公司外部客户"),
           recommended: z.boolean().optional().describe("是否推荐使用"),
           plannerAuditorOpenId: openId.describe(
-            "策划人及审核人 open_id（find_people 获取），由他审核转正式发布",
+            "单选合并字段：负责审核的一个 open_id（find_people 获取）。若策划和审核为两人，先说明限制并确认审核人，策划分工记入 releaseNote，不得静默丢弃。",
           ),
           designerOpenId: openId.optional(),
           replaceMaterialId: z
