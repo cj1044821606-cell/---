@@ -364,7 +364,11 @@ export class FeishuBaseGateway {
           typeof record.name === "string" && record.name
             ? record.name
             : `file-${fileToken.slice(0, 8)}`;
-        return encodeAttachmentLocator({ fileToken, fileName });
+        return encodeAttachmentLocator({
+          fileToken, fileName,
+          ...(typeof record.size === "number" ? { sizeBytes: record.size } : {}),
+          ...(typeof record.type === "string" ? { mimeType: record.type } : {}),
+        });
       })
       .filter((item): item is string => Boolean(item));
   }

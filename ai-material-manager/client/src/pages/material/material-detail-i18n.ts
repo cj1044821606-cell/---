@@ -48,8 +48,8 @@ export const MATERIAL_DETAIL_I18N: Record<string, MaterialDetailI18nEntry> = {
   "files.title": { zh: "文件", en: "Files" },
   "files.empty": { zh: "暂无可下载文件", en: "No files available" },
   "files.largeFileNote": {
-    zh: "大文件，将通过云盘链接下发",
-    en: "Large file — delivered via cloud link",
+    zh: "包含大文件，下载可能需要较长时间",
+    en: "Contains large files; downloading may take longer",
   },
   "files.cloudLink": { zh: "云盘链接", en: "Cloud disk link" },
   "files.exportM": { zh: "导出件 M", en: "Export M" },

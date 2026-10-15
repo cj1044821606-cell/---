@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -7,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { RELEASE_STATUS } from "@server/common/constants/bitable.constants";
 import { extractLinkRecordIds } from "@server/common/utils/bitable-link.util";
+import { decodeAttachmentLocator } from "@server/common/utils/attachment-locator.util";
 import {
   FeishuBaseGateway,
   type FeishuFieldValue,
@@ -228,6 +230,7 @@ export class PrereleaseService {
     ];
     const isLargeFile = allFiles.some((f) => f.size > LARGE_FILE_THRESHOLD);
     const created: Array<{ table: BaseTableKey; id: string }> = [];
+    let goLiveAttempted = false;
 
     try {
       // ① 主表先以“待发布”建好：等版本/发布记录都连上后再置已发布，
@@ -336,11 +339,16 @@ export class PrereleaseService {
       );
       created.push({ table: "release", id: releaseRecordId });
 
+      // Base automations can overwrite successful API writes. Verify actual records
+      // before triggering publication/old-version takedown, not just upload status.
+      await this.assertPublicationIntegrity(materialId, versionRecordId, input);
+
       // ⑤ 上线：已发布 + 预发布标记；版本替换时同时连上旧版，自动化 15 会立即下架旧版
       const goLive: Record<string, FeishuFieldValue> = {
         发布状态: RELEASE_STATUS.published,
       };
       if (old) goLive["替代的旧版本"] = [old.baseRecordId];
+      goLiveAttempted = true;
       await this.base.updateRecord("main", materialId, goLive);
 
       if (oldVersionRecordId) {
@@ -352,6 +360,8 @@ export class PrereleaseService {
             ),
           );
       }
+
+      await this.assertPublicationIntegrity(materialId, versionRecordId, input);
 
       this.logger.log(
         `Prerelease published: material=${materialId} version=${version} user=${userId} replaces=${old?.baseRecordId ?? "-"}`,
@@ -365,9 +375,47 @@ export class PrereleaseService {
         replacedMaterialId: old?.baseRecordId ?? null,
       };
     } catch (error) {
+      // A publication request may already have triggered notifications/takedown,
+      // even when its response failed. Keep IDs for repair instead of deleting it.
+      if (goLiveAttempted) {
+        const materialId = created.find((item) => item.table === "main")?.id;
+        throw new ConflictException({
+          message: `发布已提交，但完整性回读失败；请修复原记录 ${materialId ?? "未知"}，不要重新发布。${error instanceof Error ? error.message : String(error)}`,
+          materialId,
+          records: created,
+        });
+      }
       await this.rollback(created);
       throw error;
     }
+  }
+
+  private async assertPublicationIntegrity(
+    materialId: string,
+    versionRecordId: string,
+    input: PrereleasePublishInput,
+  ): Promise<void> {
+    const main = await this.base.rowById<MainRow>("main", materialId, { force: true });
+    const version = await this.base.rowById<VersionRow>("version", versionRecordId, { force: true });
+    const missing: string[] = [];
+    const check = (label: string, value: unknown, expected: UploadedFileRef[]): void => {
+      const tokens = new Set((Array.isArray(value) ? value : []).flatMap((item: unknown) => {
+        const locator = typeof item === "string" ? decodeAttachmentLocator(item) : null;
+        return locator ? [locator.fileToken] : [];
+      }));
+      if (expected.some((file) => !tokens.has(file.fileToken))) missing.push(label);
+    };
+    check("主表导出件 M", main.currentValidAttachment, input.exportFiles);
+    check("主表源文件 L", main.sourceFileL, input.sourceFiles);
+    check("主表预览 S", main.previewFileS, input.previewFiles);
+    check("版本导出件 M", version.currentVersionAttachment, input.exportFiles);
+    check("版本源文件 L", version.sourceFileL, input.sourceFiles);
+    check("版本预览 S", version.previewFileS, input.previewFiles);
+    if (main.plannerApprover !== input.plannerAuditorId) missing.push("策划及审核人");
+    if (input.designerId && main.designer !== input.designerId) missing.push("设计师");
+    if (!main.isPrerelease || version.auditStatus !== AUDIT_STATUS.pending) missing.push("预发布审核状态");
+    if (!extractLinkRecordIds(version.relatedMaterial).includes(materialId)) missing.push("版本关联物料");
+    if (missing.length) throw new ConflictException(`关联完整性校验失败：${missing.join("、")}。请检查 Base 同步工作流是否覆盖了 MCP 数据。`);
   }
 
   async approve(
