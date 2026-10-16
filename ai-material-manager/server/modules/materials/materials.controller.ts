@@ -98,6 +98,20 @@ export class MaterialsController {
   }
 
   @NeedLogin()
+  @Get(":baseRecordId/versions/:versionRecordId/files")
+  async getVersionFiles(
+    @Req() req: Request,
+    @Param("baseRecordId") baseRecordId: string,
+    @Param("versionRecordId") versionRecordId: string,
+  ): Promise<MaterialFilesResponse> {
+    return this.materialsService.getVersionFiles(
+      req.userContext.userId,
+      baseRecordId,
+      versionRecordId,
+    );
+  }
+
+  @NeedLogin()
   @Get(":baseRecordId/thumbnail")
   async getMaterialThumbnail(
     @Param("baseRecordId") baseRecordId: string,

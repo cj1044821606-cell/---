@@ -241,6 +241,23 @@ export const MATERIAL_DETAIL_I18N: Record<string, MaterialDetailI18nEntry> = {
     zh: "你领过这版 · {date}",
     en: "You downloaded this · {date}",
   },
+  "timeline.downloadVersion": {
+    zh: "下载此版本文件",
+    en: "Download this version",
+  },
+  "timeline.hideVersionFiles": { zh: "收起", en: "Hide" },
+  "timeline.noArchive": {
+    zh: "该版本未存档文件",
+    en: "No files archived for this version",
+  },
+  "timeline.historyNote": {
+    zh: "历史版本仅供设计师比对与追溯，请勿外发；对外请使用当前有效版本。",
+    en: "Past versions are for designers to compare and trace. Do not share externally; use the current version instead.",
+  },
+  "timeline.loadFailed": {
+    zh: "历史版本文件加载失败，请稍后重试",
+    en: "Couldn't load files for this version. Try again later.",
+  },
 };
 
 export type MaterialDetailPt = (

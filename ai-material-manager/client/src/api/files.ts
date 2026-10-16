@@ -18,3 +18,13 @@ export async function getKitFiles(
   );
   return data as KitFilesResponse;
 }
+
+export async function getVersionFiles(
+  baseRecordId: string,
+  versionRecordId: string,
+): Promise<MaterialFilesResponse> {
+  const { data } = await axiosForBackend.get(
+    `/api/materials/${baseRecordId}/versions/${versionRecordId}/files`,
+  );
+  return data as MaterialFilesResponse;
+}
