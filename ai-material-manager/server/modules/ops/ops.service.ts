@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import type {
+  OpsDepartmentAlert,
   OpsHealthItem,
   OpsOverdueItem,
   OpsQrAlert,
@@ -8,6 +9,7 @@ import type {
 } from "@shared/ops";
 import type { Identity } from "@shared/identity";
 import type { SystemSettings } from "@shared/settings";
+import { DepartmentService } from "@server/modules/identity/department.service";
 import { IdentityService } from "@server/modules/identity/identity.service";
 import { SystemConfigService } from "@server/modules/settings/system-config.service";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
@@ -35,6 +37,7 @@ export class OpsService {
     private readonly base: FeishuBaseGateway,
     private readonly identityService: IdentityService,
     private readonly systemConfigService: SystemConfigService,
+    private readonly departments: DepartmentService,
   ) {}
 
   async getOps(userId: string): Promise<OpsResponse> {
@@ -53,8 +56,19 @@ export class OpsService {
       this.buildHealth(),
     ]);
     const qrAlert: OpsQrAlert = await this.buildQrAlert(userId);
+    const departmentAlert: OpsDepartmentAlert =
+      await this.buildDepartmentAlert(userId);
 
-    return { stuck, overdueConfirm, qrAlert, health };
+    return { stuck, overdueConfirm, qrAlert, departmentAlert, health };
+  }
+
+  /** 以当前维护者本人为样本检查部门权限是否可用 */
+  private async buildDepartmentAlert(userId: string): Promise<OpsDepartmentAlert> {
+    const { accessIds, uploadIds } = await this.departments.configStatus();
+    const counts = { accessCount: accessIds.length, uploadCount: uploadIds.length };
+    if (accessIds.length === 0) return { status: "unconfigured", ...counts };
+    const check = await this.departments.check(userId);
+    return { status: check.state === "ok" ? "ok" : "failed", ...counts };
   }
 
   private async findStuck(): Promise<OpsStuckItem[]> {

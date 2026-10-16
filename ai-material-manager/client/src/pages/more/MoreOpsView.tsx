@@ -204,6 +204,20 @@ export const MoreOpsView: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* 部门权限告警：正常时不占位 */}
+          {data.departmentAlert && data.departmentAlert.status !== "ok" ? (
+            <div
+              className={`md:col-span-2 flex flex-wrap items-center gap-2 rounded-md px-3 py-2 text-sm ${
+                data.departmentAlert.status === "failed"
+                  ? "bg-destructive-soft text-destructive"
+                  : "bg-warning-soft text-warning-text"
+              }`}
+            >
+              <TriangleAlert className="size-4 shrink-0" />
+              {pt(`more.ops.dept.${data.departmentAlert.status}`)}
+            </div>
+          ) : null}
+
           {/* 群二维码临期告警 */}
           <Card className="md:col-span-2">
             <CardHeader className={headerClass}>

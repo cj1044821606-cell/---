@@ -101,6 +101,14 @@ export const MORE_I18N: Record<string, { zh: string; en: string }> = {
   "more.ops.qr.ok": { zh: "二维码有效，暂未临期", en: "QR valid, not expiring" },
   "more.ops.qr.none": { zh: "未配置群二维码", en: "No group QR configured" },
   "more.ops.qr.expiry": { zh: "有效期至", en: "Valid until" },
+  "more.ops.dept.unconfigured": {
+    zh: "部门权限未配置，目前只按人员表放行",
+    en: "Department access not configured — only the people table is used",
+  },
+  "more.ops.dept.failed": {
+    zh: "部门信息读取失败，请检查飞书通讯录权限",
+    en: "Failed to read departments — check the Feishu contact permissions",
+  },
   "more.ops.health": { zh: "数据体检", en: "Data health" },
   "more.ops.health.materialTotal": { zh: "物料总数", en: "Materials total" },
   "more.ops.health.materialPublished": {

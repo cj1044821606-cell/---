@@ -18,6 +18,12 @@ export interface OpsQrAlert {
   expiry: string | null;
 }
 
+export interface OpsDepartmentAlert {
+  status: "ok" | "unconfigured" | "failed";
+  accessCount: number;
+  uploadCount: number;
+}
+
 export interface OpsHealthItem {
   key: string;
   value: string;
@@ -27,5 +33,6 @@ export interface OpsResponse {
   stuck: OpsStuckItem[];
   overdueConfirm: OpsOverdueItem[];
   qrAlert: OpsQrAlert;
+  departmentAlert: OpsDepartmentAlert;
   health: OpsHealthItem[];
 }
