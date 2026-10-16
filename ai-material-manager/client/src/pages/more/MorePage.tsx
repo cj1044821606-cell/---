@@ -14,8 +14,8 @@ const MorePage: React.FC = () => {
 
   const pt = (key: string): string => MORE_I18N[key]?.[language] ?? t(key);
   const isMaintainer: boolean = identity?.isMaintainer === true;
-  // 访客没有业务数据权限，不提供 AI 助手接入
-  const canUseAgent: boolean = identity !== null && !identity.isVisitor;
+  // 储能事业部成员与人员表中的人都可以接入 AI 助手（上传仍受 isUploadRole 限制）
+  const canUseAgent: boolean = identity?.canAccess === true;
 
   return (
     <div className="space-y-6">
