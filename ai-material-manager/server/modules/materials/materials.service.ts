@@ -44,7 +44,12 @@ import { FilesService } from "@server/modules/files/files.service";
 import { ThumbnailService, selectPreviewSource } from "@server/modules/files/thumbnail.service";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
 import { mergeCloudChannels } from "@server/modules/files/cloud-files.util";
-import { selectVersionHistory } from "./version-history.util";
+import {
+  canDownloadVersionHistory,
+  countVersionArchive,
+  selectVersionHistory,
+  versionArchiveTiers,
+} from "./version-history.util";
 
 interface MaterialAssetMainRow extends Record<string, unknown> {
   baseRecordId: string;
@@ -103,6 +108,9 @@ interface VersionRecordRow extends Record<string, unknown> {
   versionType: string | null;
   versionStatus: string | null;
   isCurrentValid: boolean;
+  currentVersionAttachment?: string[];
+  sourceFileL?: string[];
+  previewFileS?: string[];
   compareOldVersion?: unknown;
   replacementVersion?: unknown;
   publishTime: Date | null;
@@ -222,6 +230,7 @@ export class MaterialsService {
         receivedByMeAt: version.baseRecordId
           ? (receivedAtByVersion.get(version.baseRecordId) ?? null)
           : null,
+        archivedFileCount: countVersionArchive(version),
       }),
     );
 
@@ -294,6 +303,79 @@ export class MaterialsService {
       receivedByMe,
       canRetire,
       canReviewPrerelease,
+      canDownloadHistory: canDownloadVersionHistory(identity.roles),
+    };
+  }
+
+  /**
+   * 历史版本存档文件：只对设计师开放；版本必须属于该物料的版本族，
+   * 防止拿任意版本记录 ID 越权下载其他物料的文件。
+   */
+  async getVersionFiles(
+    userId: string,
+    baseRecordId: string,
+    versionRecordId: string,
+  ): Promise<MaterialFilesResponse> {
+    const identity: Identity = await this.identityService.resolve(userId);
+    if (!canDownloadVersionHistory(identity.roles)) {
+      throw new ForbiddenException("只有设计师可以下载历史版本文件");
+    }
+
+    let material: MaterialAssetMainRow;
+    try {
+      material = await this.base.rowById<MaterialAssetMainRow>(
+        "main",
+        baseRecordId,
+      );
+    } catch {
+      throw new NotFoundException("物料不存在");
+    }
+    if (!this.isMaterialVisible(material, identity)) {
+      throw new NotFoundException("物料不存在");
+    }
+
+    const history = selectVersionHistory(
+      await this.base.rows<VersionRecordRow>("version"),
+      material.appInternalMaterialId,
+      extractLinkRecordIds(material.versionRecord),
+    );
+    const version = history.find(
+      (row: VersionRecordRow): boolean => row.baseRecordId === versionRecordId,
+    );
+    if (!version) {
+      throw new NotFoundException("该版本不属于这件物料");
+    }
+
+    const tiers = versionArchiveTiers(version);
+    const files: DeliverableFile[] = [];
+    const missing: Partial<Record<"M" | "L" | "S", string>> = {};
+    const reasons: Record<"M" | "L" | "S", string> = {
+      M: "该版本没有存档导出文件",
+      L: "该版本没有存档源文件",
+      S: "该版本没有存档预览文件",
+    };
+    for (const tier of ["M", "L", "S"] as const) {
+      // 版本表只存附件、没有云盘链接，因此一律走签名下载代理
+      this.assembleTierFiles({
+        tier,
+        attachments: tiers[tier],
+        cloudLinkRefs: [],
+        isLargeFile: false,
+        files,
+        missing,
+        missingReason: reasons[tier],
+        userId,
+      });
+    }
+
+    this.logger.log(
+      `Version files listed: material=${baseRecordId} version=${versionRecordId} operator=${userId} files=${files.length}`,
+    );
+    return {
+      materialId: baseRecordId,
+      versionNumber: version.versionNumber ?? "",
+      files,
+      ...(Object.keys(missing).length > 0 ? { missing } : {}),
     };
   }
 

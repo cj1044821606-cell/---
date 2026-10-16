@@ -66,6 +66,8 @@ export interface VersionItem {
   modifyReason: string | null;
   modifier: string | null;
   receivedByMeAt: string | null;
+  /** 版本表里为该版本存档的 M/L/S 附件数量；0 表示该版本没有可下载的存档文件 */
+  archivedFileCount: number;
 }
 
 export interface VersionBanner {
@@ -82,6 +84,8 @@ export interface MaterialDetailResponse {
   canRetire: boolean;
   /** 当前用户可对这条预发布物料执行“审核通过 / 驳回” */
   canReviewPrerelease: boolean;
+  /** 只有身份表标记为“设计师”的用户可以下载历史（非当前）版本的存档文件 */
+  canDownloadHistory: boolean;
 }
 
 export interface MaterialKitItem {
