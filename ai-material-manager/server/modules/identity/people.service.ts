@@ -50,8 +50,8 @@ export class PeopleService {
     pageToken?: string,
   ): Promise<PeopleOptionsResult> {
     if (query?.trim()) {
-      if ((await this.identity.resolve(userId)).isVisitor)
-        throw new ForbiddenException('仅组织内用户可搜索成员');
+      if (!(await this.identity.resolve(userId)).canAccess)
+        throw new ForbiddenException('仅储能事业部成员可搜索组织成员');
       if (query.length > 100 || (pageToken?.length ?? 0) > 2000)
         throw new BadRequestException('搜索参数过长');
       const response = await this.feishu.client.directory.v1.employee.search({

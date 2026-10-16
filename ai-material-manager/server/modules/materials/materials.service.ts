@@ -503,6 +503,8 @@ export class MaterialsService {
   ): boolean {
     if (material.releaseStatus !== RELEASE_STATUS.published) return false;
     const regions: string[] = material.applicableRegion ?? [];
+    // 储能事业部成员（未录人员表）与总部同等：看全部已发布物料
+    if (identity.isDivisionMember) return true;
     // 访客口径最严：仅 GLOBAL + 允许外发，viewGlobal 不放宽
     if (identity.isVisitor) {
       return (

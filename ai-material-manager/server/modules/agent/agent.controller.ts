@@ -71,8 +71,8 @@ export class AgentController {
     @Req() req: Request,
     @Body() body: AgentTokenCreateRequest,
   ): Promise<AgentTokenCreateResponse> {
-    if ((await this.identity.resolve(req.userContext.userId)).isVisitor) {
-      throw new ForbiddenException("访客账号不能创建 AI 助手令牌");
+    if (!(await this.identity.resolve(req.userContext.userId)).canAccess) {
+      throw new ForbiddenException("本系统仅对储能事业部开放，不能创建 AI 助手令牌");
     }
     return this.tokens.issue(req.userContext, body?.label, body?.ttlDays);
   }

@@ -22,7 +22,12 @@ describe('organization people search', () => {
   );
   beforeEach(() => {
     search.mockReset();
-    resolve.mockResolvedValue({ isVisitor: false });
+    resolve.mockResolvedValue({ isVisitor: false, canAccess: true });
+  });
+  it('事业部成员（未录人员表）也能搜索组织成员', async () => {
+    resolve.mockResolvedValue({ isVisitor: true, canAccess: true });
+    search.mockResolvedValue({ code: 0, data: { employees: [], page_response: { has_more: false } } });
+    await expect(controller.listOptions(req, 'alan')).resolves.toMatchObject({ items: [] });
   });
   it('finds people absent from the role table and keeps open_id plus pagination', async () => {
     search.mockResolvedValue({

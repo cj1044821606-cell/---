@@ -2,6 +2,7 @@ import { All, Controller, Logger, Post, Req, Res } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Request, Response } from "express";
+import { IdentityService } from "@server/modules/identity/identity.service";
 import { AgentTokenService } from "./agent-token.service";
 import { bearerToken } from "./bearer";
 import { McpServerFactory } from "./mcp-server.factory";
@@ -27,6 +28,7 @@ export class McpController {
     private readonly config: ConfigService,
     private readonly tokens: AgentTokenService,
     private readonly factory: McpServerFactory,
+    private readonly identity: IdentityService,
   ) {}
 
   @Post()
@@ -42,6 +44,17 @@ export class McpController {
         401,
         "未认证：请在物料系统网页“更多 → AI 助手接入”创建个人访问令牌，并以 Authorization: Bearer <令牌> 连接",
       );
+      return;
+    }
+
+    // 令牌有效期内离开事业部的人，下一次请求就要被拒，而不是等令牌过期
+    const { accessState } = await this.identity.resolve(principal.userId);
+    if (accessState !== "granted") {
+      if (accessState === "unverified") {
+        jsonRpcError(res, 503, "暂时无法验证部门，请稍后重试");
+      } else {
+        jsonRpcError(res, 403, "本系统仅对储能事业部开放，你的账号已无访问权限");
+      }
       return;
     }
 
