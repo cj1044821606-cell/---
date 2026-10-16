@@ -14,7 +14,6 @@ import {
   Pencil,
   RefreshCw,
   RotateCcw,
-  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@client/src/lib/logger";
@@ -59,6 +58,7 @@ import {
 } from "@client/src/components/ui/dialog";
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -80,7 +80,7 @@ import {
 } from "./material-detail-utils";
 import DeliveryCard from "./DeliveryCard";
 import FeedbackDialog from "./FeedbackDialog";
-import ShareDialog from "./ShareDialog";
+import ShareLinkButton from "@client/src/components/ShareLinkButton";
 import MaterialBanner from "./MaterialBanner";
 import MaterialIdentity from "./MaterialIdentity";
 import MaterialVisualActions from "./MaterialVisualActions";
@@ -129,7 +129,6 @@ const MaterialDetailPage: React.FC = () => {
   const [subBusy, setSubBusy] = useState<boolean>(false);
   const [deliveryOpen, setDeliveryOpen] = useState<boolean>(false);
   const [feedbackOpen, setFeedbackOpen] = useState<boolean>(false);
-  const [shareOpen, setShareOpen] = useState<boolean>(false);
   const [retireOpen, setRetireOpen] = useState<boolean>(false);
   const [restoreOpen, setRestoreOpen] = useState<boolean>(false);
   const [retireReason, setRetireReason] = useState<string>("");
@@ -421,6 +420,12 @@ const MaterialDetailPage: React.FC = () => {
                 {pt("detail.notFound.desc")}
               </EmptyDescription>
             </EmptyHeader>
+            {/* 分享链接打开的人可能不在该物料的可见范围内，给一个明确出口 */}
+            <EmptyContent>
+              <Button asChild size="sm">
+                <Link to="/library">{pt("detail.notFound.toLibrary")}</Link>
+              </Button>
+            </EmptyContent>
           </Empty>
         ) : error === "load" ? (
           <Alert variant="destructive">
@@ -506,16 +511,10 @@ const MaterialDetailPage: React.FC = () => {
                         ? pt("action.subscribed")
                         : pt("action.subscribe")}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9"
-                      disabled={!resp.material.allowExternalSend}
-                      onClick={() => setShareOpen(true)}
-                    >
-                      <Share2 size={14} />
-                      {pt("action.share")}
-                    </Button>
+                    <ShareLinkButton
+                      materialId={resp.material.baseRecordId}
+                      variant="button"
+                    />
                     <Button
                       variant="outline"
                       size="sm"
@@ -595,12 +594,6 @@ const MaterialDetailPage: React.FC = () => {
               versionNumber={currentVersion?.versionNumber ?? ""}
               materialId={resp.material.baseRecordId}
               sourceFileVisible={sourceFileVisible}
-            />
-            <ShareDialog
-              open={shareOpen}
-              onOpenChange={setShareOpen}
-              material={resp.material}
-              statusLabel={statusLabel}
             />
             <Dialog
               open={retireOpen}

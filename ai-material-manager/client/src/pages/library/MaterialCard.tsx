@@ -1,3 +1,4 @@
+import ShareLinkButton from '@client/src/components/ShareLinkButton';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -187,6 +188,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   );
 
   return (
+    <div className="group/card relative">
     <Link
       to={`/material/${baseRecordId}`}
       onPointerEnter={handleIntent}
@@ -283,6 +285,15 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
         ) : null}
       </div>
     </Link>
+      {/* 与卡片链接同级叠放：避免按钮嵌在 <a> 里，点击也不会跳转详情 */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3]">
+        <ShareLinkButton
+          materialId={baseRecordId}
+          variant="icon"
+          className="pointer-events-auto absolute bottom-2.5 right-2.5 md:opacity-0 md:group-hover/card:opacity-100 md:focus-visible:opacity-100"
+        />
+      </div>
+    </div>
   );
 };
 

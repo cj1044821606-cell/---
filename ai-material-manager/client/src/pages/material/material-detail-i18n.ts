@@ -25,9 +25,10 @@ export const MATERIAL_DETAIL_I18N: Record<string, MaterialDetailI18nEntry> = {
     en: "Material not found or removed",
   },
   "detail.notFound.desc": {
-    zh: "请返回物料库重新查找",
-    en: "Go back to the library and search again",
+    zh: "可能已下架，或不在你的可见范围内。请返回物料库重新查找",
+    en: "It may have been retired or be outside your visible regions. Go back to the library and search again",
   },
+  "detail.notFound.toLibrary": { zh: "去物料库", en: "Go to library" },
 
   // 旧版拦截横幅
   "banner.old.title": {
@@ -64,7 +65,6 @@ export const MATERIAL_DETAIL_I18N: Record<string, MaterialDetailI18nEntry> = {
   "action.subscribe": { zh: "订阅更新", en: "Subscribe" },
   "action.subscribed": { zh: "已订阅更新", en: "Subscribed" },
   "action.report": { zh: "报问题", en: "Report issue" },
-  "action.share": { zh: "分享给客户", en: "Share to client" },
   "action.retire": { zh: "下架", en: "Retire" },
   "action.restore": { zh: "重新上架", en: "Restore" },
   "action.retireFail": { zh: "下架失败，请重试", en: "Retire failed. Please retry" },
@@ -81,24 +81,6 @@ export const MATERIAL_DETAIL_I18N: Record<string, MaterialDetailI18nEntry> = {
   "gate.notPublic": {
     zh: "此物料不允许发给客户，仅供内部使用",
     en: "This asset must NOT be sent to clients. Internal use only.",
-  },
-
-  // 分享确认
-  "share.title": { zh: "确认分享给客户", en: "Confirm sharing to client" },
-  "share.desc": {
-    zh: "外发前请确认内容合规且适用于客户场景",
-    en: "Make sure the content is compliant and suitable for the client",
-  },
-  "share.file": { zh: "文件名", en: "File name" },
-  "share.version": { zh: "版本号", en: "Version" },
-  "share.confirm": { zh: "确认分享", en: "Confirm share" },
-  "share.success": {
-    zh: "已确认，请通过合规渠道发送",
-    en: "Confirmed. Send via compliant channels",
-  },
-  "share.blocked": {
-    zh: "该物料当前不满足外发条件",
-    en: "This asset is not eligible for external sharing",
   },
 
   // 报问题
