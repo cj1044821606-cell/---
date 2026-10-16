@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
-import { NeedLogin } from "@server/common/auth/need-login.decorator";
+import { NeedSession } from "@server/common/auth/need-login.decorator";
 import { SessionService } from "@server/common/auth/session.service";
 import type { SessionUser } from "@server/common/auth/session.types";
 import { FeishuService } from "@server/modules/feishu/feishu.service";
@@ -51,13 +51,13 @@ export class AuthController {
     res.redirect(verified.next);
   }
 
-  @NeedLogin()
+  @NeedSession()
   @Get("me")
   me(@Req() req: Request): SessionUser {
     return req.userContext;
   }
 
-  @NeedLogin()
+  @NeedSession()
   @Post("logout")
   logout(@Res() res: Response): void {
     this.sessions.clearSessionCookie(res);
