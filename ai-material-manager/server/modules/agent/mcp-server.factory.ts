@@ -34,19 +34,20 @@ import { AgentTicketService } from "./agent-ticket.service";
 import { AgentUploadService } from "./agent-upload.service";
 import { MCP_SERVER_NAME } from "./agent.constants";
 import { absoluteUrl } from "./public-url";
-import { buildUploadCommands } from "./upload-commands";
+import { buildUploadCommands, combineUploadCommands } from "./upload-commands";
 
 const MCP_SERVER_VERSION = "1.0.0";
 
 const SERVER_INSTRUCTIONS = `传音储能物料管理系统（飞书多维表格为唯一数据源）。你以当前登录用户本人的身份操作。
 
-上传即预发布（不经过 TClaw，几秒完成）：
-1. 读懂用户的本地文件，整理命名信息（大类、型号、物料类型、语言、主区域市场码、版本号）和标记（产品线、适用区域、风险、是否允许外发）；
-2. plan_material：得到查重后的标准命名；版本替换时传 replaceMaterialId（来自 search_materials），会给出建议版本号；
-3. 对每个文件 prepare_upload（带 standardName 和 kind=M/L/S，文件会以“标准命名-M.pdf”这类标准文件名入库），在用户电脑上执行返回的命令；
-4. get_upload_status 等全部 taskId 为 done；
-5. 把命名、标记、审核人给用户过目并得到同意后，调用 publish_material。物料立即上线为“预发布”，所有人可正常下载；策划人及审核人在网页点“审核通过”后转为正式发布，驳回则下架。版本替换时旧版会立即下架并通知旧版领取人。
-审核人必须指定：先用 find_people 拿 open_id。
+上传即预发布（不经过 TClaw，几秒完成），整个流程只需用户确认一次：
+1. 读懂用户的本地文件；用一条本机命令同时读出所有文件的字节数和 SHA-256；
+2. search_materials 判断是新物料还是新版本；plan_material 得到查重后的标准命名与建议版本号；find_people 解析用户提到的审核人；
+3. 把命名、标记、审核人、文件清单和所有拿不准的问题放进同一条消息让用户过目——这是唯一一次确认；
+4. 用户同意后 prepare_uploads（一次传入全部文件，带 standardName、kind=M/L/S、sha256），在用户电脑上执行一次返回的脚本；
+5. get_upload_status(waitSeconds: 60) 等全部 done，紧接着 publish_material，不再二次确认。物料立即上线为“预发布”，所有人可正常下载；策划人及审核人在网页点“审核通过”后转为正式发布，驳回则下架。版本替换时旧版会立即下架并通知旧版领取人；
+6. get_material_files 回读，与确认过的清单一致才报告完成。
+审核人必须指定（open_id 来自 find_people）。
 
 跟进处理：list_my_tasks 查看待办（包括预发布被驳回的原因）；网页上传的文件仍由 TClaw 处理，其 AI 追问用 answer_ai_question、识别确认用 confirm_recognition（会直接生效，必须先得到用户明确同意）。
 查找与下载：search_materials、get_material、get_material_files（下载链接 30 分钟内有效）。`;
@@ -90,6 +91,7 @@ const namingShape = {
   eventYear: z.string().max(4).optional().describe("展会年份，四位数字"),
 };
 
+const UPLOAD_STATUS_POLL_MS = 2000;
 const openId = z.string().regex(/^ou_[A-Za-z0-9]+$/u);
 
 const taskIdList = z
@@ -390,13 +392,141 @@ export class McpServerFactory {
   }
 
   private registerUploadTools(server: McpServer, ctx: ToolContext): void {
+    const sha256Field = z
+      .string()
+      .regex(/^[0-9a-fA-F]{64}$/u)
+      .optional()
+      .describe(
+        "本机文件的 SHA-256（macOS: shasum -a 256；Linux: sha256sum；Windows: (Get-FileHash 文件).Hash）。提供后服务器收齐会逐字节校验，不一致直接拒收",
+      );
+    const variantField = z
+      .string()
+      .regex(/^[A-Za-z0-9][A-Za-z0-9._x]{0,29}$/u)
+      .optional()
+      .describe("同一 kind 有多个文件时的区分词，如 RGB、CMYK、1080x1920；存为 <标准命名>-<variant>-<kind>.<扩展名>");
+    const kindField = z
+      .enum(["M", "L", "S"])
+      .describe("M=导出件（PDF/JPG/MP4 等成品）, L=源文件（AI/PSD 等）, S=预览图");
+
+    const issue = (
+      file: {
+        localPath: string;
+        fileSize: number;
+        kind?: "M" | "L" | "S";
+        sha256?: string;
+        variant?: string;
+      },
+      standardName: string | undefined,
+    ) => {
+      const original = fileNameFromPath(file.localPath);
+      if (standardName && !file.kind) {
+        throw new ToolInputError("传了 standardName 时必须同时指定 kind（M/L/S）");
+      }
+      const variant = file.variant?.trim();
+      const fileName =
+        standardName && file.kind
+          ? `${standardName.trim()}${variant ? `-${variant}` : ""}-${file.kind}${extensionOf(original)}`
+          : original;
+      if (fileName.length > 255) {
+        throw new ToolInputError("文件名过长（最多 255 个字符）");
+      }
+      const { ticket, upload } = this.tickets.issueUpload(
+        ctx.principal.userId,
+        fileName,
+        file.fileSize,
+        file.sha256,
+      );
+      const uploadUrl = `${ctx.baseUrl}/api/agent/uploads/${ticket}`;
+      const chunkCount = this.tickets.chunkCount(file.fileSize);
+      return {
+        taskId: upload.uploadId,
+        kind: file.kind ?? null,
+        storedAs: upload.fileName,
+        fileSize: file.fileSize,
+        hashVerified: Boolean(upload.sha256),
+        expiresAt: new Date(upload.expiresAt).toISOString(),
+        chunkCount,
+        commands: buildUploadCommands({
+          uploadUrl,
+          localPath: file.localPath,
+          chunkSize: this.tickets.chunkBytes,
+          chunkCount,
+        }),
+      };
+    };
+
+    registerTool(
+      server,
+      "prepare_uploads",
+      {
+        title: "批量准备上传",
+        description:
+          "Preferred. Get ONE combined shell script that uploads all files of a material (M/L/S, up to 10) with automatic per-chunk retries, so the user approves a single command. Pass standardName (from plan_material) so files are stored as <standardName>-<kind>.<ext>, and sha256 for each file so the server verifies content. Then call get_upload_status with waitSeconds.",
+        inputSchema: {
+          standardName: z
+            .string()
+            .min(1)
+            .max(200)
+            .describe("plan_material 返回的标准命名"),
+          files: z
+            .array(
+              z.object({
+                localPath: z
+                  .string()
+                  .min(1)
+                  .max(1024)
+                  .describe("文件在用户电脑上的完整路径（只用于生成命令，服务器不会读取）"),
+                fileSize: z.number().int().positive().describe("文件字节数"),
+                kind: kindField,
+                sha256: sha256Field,
+                variant: variantField,
+              }),
+            )
+            .min(1)
+            .max(10),
+        },
+        annotations: { readOnlyHint: false, openWorldHint: false },
+      },
+      async ({ standardName, files }) => {
+        await this.assertCanUpload(ctx);
+        const storedNames = new Set<string>();
+        const items = files.map((file) => {
+          const item = issue(file, standardName);
+          // 同一 kind 下两个同扩展名文件会撞名（例如 RGB/CMYK 两份 PDF），提前拦下
+          if (storedNames.has(item.storedAs)) {
+            throw new ToolInputError(
+              `两个文件会被存成同名“${item.storedAs}”。同一 kind 有多个文件时，给每个文件填 variant（如 RGB / CMYK / 1080x1920）区分`,
+            );
+          }
+          storedNames.add(item.storedAs);
+          return item;
+        });
+        const script = combineUploadCommands(
+          items.map((item) => ({
+            label: `${item.kind ?? ""} ${item.storedAs}`.trim(),
+            commands: item.commands,
+          })),
+        );
+        return ok({
+          files: items.map(({ commands: _commands, ...rest }) => rest),
+          taskIds: {
+            M: items.filter((i) => i.kind === "M").map((i) => i.taskId),
+            L: items.filter((i) => i.kind === "L").map((i) => i.taskId),
+            S: items.filter((i) => i.kind === "S").map((i) => i.taskId),
+          },
+          commands: script,
+          next: "在用户电脑上执行一次 commands.bash（macOS/Linux）或 commands.powershell（Windows），输出 ALL UPLOADS SENT 后调用 get_upload_status(taskIds, waitSeconds: 60)。",
+        });
+      },
+    );
+
     registerTool(
       server,
       "prepare_upload",
       {
         title: "准备上传文件",
         description:
-          "Get a short-lived upload URL plus ready-to-run shell commands for ONE local file. Pass standardName (from plan_material) and kind so the file is stored under its standard file name. Run the command on the user's machine (bash on macOS/Linux, powershell on Windows), then poll get_upload_status.",
+          "Get a short-lived upload URL plus ready-to-run shell commands for ONE local file. Prefer prepare_uploads for several files. Pass standardName (from plan_material) and kind so the file is stored under its standard file name, and sha256 so the server verifies content. Run the command on the user's machine (bash on macOS/Linux, powershell on Windows), then call get_upload_status.",
         inputSchema: {
           localPath: z
             .string()
@@ -409,50 +539,45 @@ export class McpServerFactory {
             .max(200)
             .optional()
             .describe("plan_material 返回的标准命名"),
-          kind: z
-            .enum(["M", "L", "S"])
-            .optional()
-            .describe("M=导出件（PDF/JPG/MP4 等成品）, L=源文件（AI/PSD 等）, S=预览图"),
+          kind: kindField.optional(),
+          sha256: sha256Field,
+          variant: variantField,
         },
         annotations: { readOnlyHint: false, openWorldHint: false },
       },
-      async ({ localPath, fileSize, standardName, kind }) => {
+      async ({ localPath, fileSize, standardName, kind, sha256, variant }) => {
         await this.assertCanUpload(ctx);
-        const original = fileNameFromPath(localPath);
-        if (standardName && !kind) {
-          throw new ToolInputError("传了 standardName 时必须同时指定 kind（M/L/S）");
-        }
-        const fileName =
-          standardName && kind
-            ? `${standardName.trim()}-${kind}${extensionOf(original)}`
-            : original;
-        if (fileName.length > 255) {
-          throw new ToolInputError("文件名过长（最多 255 个字符）");
-        }
-        const { ticket, upload } = this.tickets.issueUpload(
-          ctx.principal.userId,
-          fileName,
-          fileSize,
-        );
-        const uploadUrl = `${ctx.baseUrl}/api/agent/uploads/${ticket}`;
-        const chunkCount = this.tickets.chunkCount(fileSize);
+        const item = issue({ localPath, fileSize, kind, sha256, variant }, standardName);
         return ok({
-          taskId: upload.uploadId,
-          storedAs: upload.fileName,
-          fileSize,
-          expiresAt: new Date(upload.expiresAt).toISOString(),
+          ...item,
           chunkSize: this.tickets.chunkBytes,
-          chunkCount,
-          commands: buildUploadCommands({
-            uploadUrl,
-            localPath,
-            chunkSize: this.tickets.chunkBytes,
-            chunkCount,
-          }),
-          next: "执行命令后用 get_upload_status 查询该 taskId，状态为 done 再发布。",
+          next: "执行命令后用 get_upload_status 查询该 taskId（可传 waitSeconds 等待完成），状态为 done 再发布。",
         });
       },
     );
+
+    const statusItem = (taskId: string) => {
+      const progress = this.uploads.status(ctx.principal.userId, taskId);
+      if (!progress) {
+        return {
+          taskId,
+          status: "receiving" as const,
+          hint: "服务器还没收齐这个文件：确认上传命令已成功执行；上传链接 2 小时后失效",
+        };
+      }
+      return {
+        taskId,
+        status: progress.status,
+        fileName: progress.fileName,
+        totalSize: progress.totalSize,
+        sha256: progress.sha256 ?? null,
+        percent:
+          progress.totalBlocks > 0
+            ? Math.round((progress.uploadedBlocks / progress.totalBlocks) * 100)
+            : 0,
+        error: progress.error ?? null,
+      };
+    };
 
     registerTool(
       server,
@@ -460,37 +585,38 @@ export class McpServerFactory {
       {
         title: "查询上传进度",
         description:
-          "Check upload tasks. status: receiving (file not fully sent yet), uploading (being stored to Feishu), done, failed.",
+          "Check upload tasks. status: receiving (file not fully sent yet), uploading (being stored to Feishu), done, failed. Pass waitSeconds (up to 60) to wait server-side until every task is done or failed, instead of polling repeatedly.",
         inputSchema: {
           taskIds: z.array(z.string().min(1).max(120)).min(1).max(20),
+          waitSeconds: z
+            .number()
+            .int()
+            .min(0)
+            .max(60)
+            .optional()
+            .describe("最多等待多少秒，直到全部 done/failed；默认 0 立即返回"),
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async ({ taskIds }) => {
+      async ({ taskIds, waitSeconds }) => {
+        const deadline = Date.now() + (waitSeconds ?? 0) * 1000;
+        let items = taskIds.map(statusItem);
+        while (
+          Date.now() < deadline &&
+          items.some((item) => item.status !== "done" && item.status !== "failed")
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, UPLOAD_STATUS_POLL_MS));
+          items = taskIds.map(statusItem);
+        }
+        const allDone = items.every((item) => item.status === "done");
         return ok({
-          items: taskIds.map((taskId) => {
-            const progress = this.uploads.status(ctx.principal.userId, taskId);
-            if (!progress) {
-              return {
-                taskId,
-                status: "receiving",
-                hint: "服务器还没收齐这个文件：确认上传命令已成功执行；上传链接 2 小时后失效",
-              };
-            }
-            return {
-              taskId,
-              status: progress.status,
-              fileName: progress.fileName,
-              totalSize: progress.totalSize,
-              percent:
-                progress.totalBlocks > 0
-                  ? Math.round(
-                      (progress.uploadedBlocks / progress.totalBlocks) * 100,
-                    )
-                  : 0,
-              error: progress.error ?? null,
-            };
-          }),
+          items,
+          allDone,
+          next: allDone
+            ? "全部转存完成，可以 publish_material。"
+            : items.some((item) => item.status === "failed")
+              ? "有文件失败：对失败的文件重新 prepare_upload 并上传，其余 taskId 可直接沿用。"
+              : "仍在传输，稍后再查（可继续传 waitSeconds）。",
         });
       },
     );

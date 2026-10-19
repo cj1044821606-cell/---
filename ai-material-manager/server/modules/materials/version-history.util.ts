@@ -48,3 +48,35 @@ export function selectVersionHistory<T extends VersionHistoryLinks>(
 
   return rows.filter((row) => selectedIds.has(row.baseRecordId));
 }
+
+export interface VersionArchiveFields {
+  currentVersionAttachment?: string[] | null;
+  sourceFileL?: string[] | null;
+  previewFileS?: string[] | null;
+}
+
+/** 版本表为该版本存档的附件，按 M/L/S 分层并去重。 */
+export function versionArchiveTiers(row: VersionArchiveFields): {
+  M: string[];
+  L: string[];
+  S: string[];
+} {
+  const unique = (values: string[] | null | undefined): string[] => [
+    ...new Set((values ?? []).filter((value) => typeof value === 'string' && value.length > 0)),
+  ];
+  return {
+    M: unique(row.currentVersionAttachment),
+    L: unique(row.sourceFileL),
+    S: unique(row.previewFileS),
+  };
+}
+
+export function countVersionArchive(row: VersionArchiveFields): number {
+  const tiers = versionArchiveTiers(row);
+  return tiers.M.length + tiers.L.length + tiers.S.length;
+}
+
+/** 历史版本下载只对身份表里的“设计师”开放，其他角色只能查看版本迭代。 */
+export function canDownloadVersionHistory(roles: readonly string[]): boolean {
+  return roles.includes('设计师');
+}
