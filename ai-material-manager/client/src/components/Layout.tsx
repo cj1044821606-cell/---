@@ -41,6 +41,13 @@ import {
 import { Image } from "@client/src/components/ui/image";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import { useIdentity } from "@client/src/hooks/use-identity";
+import {
+  accessBlock,
+  canUseAgent as canUseAgentFor,
+  shouldAutoShowAgentTutorial,
+  showVisitorBanner,
+} from "@shared/access";
+import NoAccessPage from "@client/src/pages/NoAccessPage";
 import { useInbox } from "@client/src/inbox/inbox-provider";
 import { useSystemSettings } from "@client/src/hooks/use-system-settings";
 import GroupGuideDialog, {
@@ -93,8 +100,8 @@ const Layout: React.FC = () => {
   const mobileLauncherRef = useRef<HTMLButtonElement>(null);
   const tt = (key: string): string =>
     TUTORIAL_I18N[key]?.[language] ?? t(key);
-  // 访客没有业务数据权限，不提供 AI 助手接入，也就不需要教程
-  const canUseAgent: boolean = identity !== null && !identity.isVisitor;
+  // 有访问权限的人都能手动打开 AI 助手接入；教程只对能上传的人自动弹出
+  const canUseAgent: boolean = identity !== null && canUseAgentFor(identity);
   useScrollRestoration();
 
   useEffect(() => {
@@ -112,12 +119,12 @@ const Layout: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!guideSettled || !canUseAgent || tutorialAutoShown.current) return;
-    if (hasSeenAgentTutorial()) return;
+    if (!guideSettled || !identity || tutorialAutoShown.current) return;
+    if (!shouldAutoShowAgentTutorial(identity, hasSeenAgentTutorial())) return;
     tutorialAutoShown.current = true;
     const timer = window.setTimeout(() => setTutorialOpen(true), 500);
     return () => window.clearTimeout(timer);
-  }, [guideSettled, canUseAgent]);
+  }, [guideSettled, identity]);
 
   /** 关闭教程：弹窗缩小飞进入口图标，图标闪一下；第一次还会提示“教程收在这里” */
   const parkTutorial = (rect: DOMRect | null): void => {
@@ -216,6 +223,9 @@ const Layout: React.FC = () => {
     </DropdownMenu>
   );
 
+  const blocked = identity ? accessBlock(identity) : null;
+  if (blocked) return <NoAccessPage reason={blocked} />;
+
   return (
     <div className="relative min-h-screen bg-background text-foreground">
       {/* 页面顶部淡淡的蓝、珊瑚两团光晕，让底色不那么单调；固定在视口，不随内容滚动 */}
@@ -309,7 +319,7 @@ const Layout: React.FC = () => {
         </div>
       </header>
 
-      {identity?.isVisitor ? (
+      {identity && showVisitorBanner(identity) ? (
         <div className="sticky top-0 z-30 border-b border-warning/30 bg-warning-soft px-4 py-2 text-center text-sm font-medium text-warning-text md:top-14">
           {t("identity.visitorBanner")}
         </div>

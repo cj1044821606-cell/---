@@ -17,6 +17,7 @@ import type { Request, Response } from "express";
 import { NeedLogin } from "@server/common/auth/need-login.decorator";
 import { FilesService } from "@server/modules/files/files.service";
 import { IdentityService } from "@server/modules/identity/identity.service";
+import { canUseAgent } from "@shared/access";
 import type {
   AgentConnectionInfo,
   AgentTokenCreateRequest,
@@ -71,8 +72,8 @@ export class AgentController {
     @Req() req: Request,
     @Body() body: AgentTokenCreateRequest,
   ): Promise<AgentTokenCreateResponse> {
-    if ((await this.identity.resolve(req.userContext.userId)).isVisitor) {
-      throw new ForbiddenException("访客账号不能创建 AI 助手令牌");
+    if (!canUseAgent(await this.identity.resolve(req.userContext.userId))) {
+      throw new ForbiddenException("本系统仅对储能事业部开放，不能创建 AI 助手令牌");
     }
     return this.tokens.issue(req.userContext, body?.label, body?.ttlDays);
   }

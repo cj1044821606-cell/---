@@ -1,4 +1,9 @@
 import axios from "axios";
+import { queryClient } from "@client/src/lib/query-client";
+import { accessErrorCode } from "@shared/access";
+
+// 与 use-identity 的 IDENTITY_QUERY_KEY 一致；不直接引用以免 api-client ↔ use-identity 循环依赖
+const IDENTITY_QUERY_KEY = ["identity"] as const;
 
 export const axiosForBackend = axios.create({
   baseURL: "/",
@@ -25,6 +30,12 @@ axiosForBackend.interceptors.response.use(
       }
       const next = `${window.location.pathname}${window.location.search}`;
       window.location.assign(`/api/auth/login?next=${encodeURIComponent(next)}`);
+    } else if (
+      axios.isAxiosError(error) &&
+      accessErrorCode(error.response?.status, error.response?.data) !== null
+    ) {
+      // 访问权限变化（离开事业部 / 部门暂时无法验证）：重取身份，由 Layout 渲染无权限页
+      void queryClient.invalidateQueries({ queryKey: IDENTITY_QUERY_KEY });
     }
     return Promise.reject(error);
   },

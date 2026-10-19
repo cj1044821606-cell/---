@@ -34,6 +34,7 @@ describe("MCP endpoint (HTTP round trip)", () => {
   let baseUrl: string;
   let token: string;
   const publish = jest.fn();
+  let accessState: "granted" | "denied" | "unverified" = "granted";
 
   beforeAll(async () => {
     dir = await fs.mkdtemp(path.join(os.tmpdir(), "mcp-e2e-"));
@@ -56,6 +57,8 @@ describe("MCP endpoint (HTTP round trip)", () => {
         isVisitor: false,
         isUploadRole: true,
         isMaintainer: false,
+        accessState,
+        canAccess: accessState === "granted",
       })),
     } as unknown as IdentityService;
     const uploads = {
@@ -83,7 +86,7 @@ describe("MCP endpoint (HTTP round trip)", () => {
       new AgentTicketService(config),
       uploads,
     );
-    const controller = new McpController(config, tokens, factory);
+    const controller = new McpController(config, tokens, factory, identity);
 
     const app = express();
     app.use(express.json());
@@ -121,6 +124,25 @@ describe("MCP endpoint (HTTP round trip)", () => {
     expect(response.status).toBe(401);
     expect(response.headers.get("www-authenticate")).toContain("Bearer");
     await expect(connect("amm_forged.token")).rejects.toThrow();
+  });
+
+  it("令牌主人失去访问权后 MCP 请求被拒", async () => {
+    accessState = "denied";
+    try {
+      const response = await fetch(`${baseUrl}/mcp`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      });
+      expect(response.status).toBe(403);
+      expect(JSON.stringify(await response.json())).toContain("储能事业部");
+    } finally {
+      accessState = "granted";
+    }
   });
 
   it("answers GET with 405 (stateless server, no SSE stream)", async () => {

@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import type { Cache } from "cache-manager";
 import type { AppRole, Identity, Lang } from "@shared/identity";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
+import { DepartmentService, type DepartmentCheck } from "./department.service";
 
 const KNOWN_ROLES: AppRole[] = [
   "策划",
@@ -53,19 +54,29 @@ export class IdentityService {
     private readonly base: FeishuBaseGateway,
     @Inject(CACHE_MANAGER)
     private readonly cache: Cache,
+    private readonly departments: DepartmentService,
   ) {}
 
   async resolve(userId: string): Promise<Identity> {
-    const cacheKey = `identity:v3:${userId}`;
+    const cacheKey = `identity:v4:${userId}`;
     const hit: Identity | null = await this.cache.get<Identity>(cacheKey);
     if (hit !== null) return hit;
 
-    const fresh: Identity = await this.buildIdentity(userId);
-    await this.cache.set(cacheKey, fresh, IDENTITY_CACHE_TTL_MS);
+    const check: DepartmentCheck = await this.departments.check(userId);
+    const fresh: Identity = await this.buildIdentity(userId, check);
+    // 部门验证失败的结果不缓存，避免一次接口抖动把人挡在门外 10 分钟
+    if (check.state !== "failed") {
+      await this.cache.set(cacheKey, fresh, IDENTITY_CACHE_TTL_MS);
+    }
     return fresh;
   }
 
-  private async buildIdentity(userId: string): Promise<Identity> {
+  private async buildIdentity(
+    userId: string,
+    check: DepartmentCheck,
+  ): Promise<Identity> {
+    const inDivision: boolean = check.state === "ok" && check.inDivision;
+    const inMarketing: boolean = check.state === "ok" && check.inMarketing;
     const rows = (await this.base.rows<PersonnelRow>("people")).filter(
       (row) => row.appPerson.includes(userId),
     );
@@ -84,6 +95,13 @@ export class IdentityService {
     }
 
     if (roles.length === 0) {
+      // 不在人员表：部门未配置时沿用旧访客口径；配置后只放行储能事业部
+      const accessState =
+        check.state === "unconfigured" || inDivision
+          ? "granted"
+          : check.state === "failed"
+            ? "unverified"
+            : "denied";
       return {
         userId,
         roles: [],
@@ -95,7 +113,12 @@ export class IdentityService {
         canEditMaterial: false,
         isMaintainer: false,
         isHqAuditor: false,
-        isUploadRole: false,
+        isUploadRole: accessState === "granted" && inMarketing,
+        accessState,
+        canAccess: accessState === "granted",
+        inDivision,
+        inMarketing,
+        isDivisionMember: inDivision,
       };
     }
 
@@ -120,9 +143,15 @@ export class IdentityService {
       isMaintainer: roles.includes("维护者"),
       isHqAuditor: roles.includes("审核人") && area === "HQ",
       isUploadRole:
+        inMarketing ||
         roles.includes("策划") ||
         roles.includes("设计师") ||
         roles.includes("区域营销"),
+      accessState: "granted",
+      canAccess: true,
+      inDivision,
+      inMarketing,
+      isDivisionMember: false,
     };
   }
 
