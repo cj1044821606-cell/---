@@ -36,10 +36,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       httpStatus = exception.getStatus() as HttpStatus;
       const exceptionResponse = exception.getResponse();
 
+      // 守卫等处抛出 { code, message } 时透传业务码（如 NOT_IN_DIVISION），前端据此切换无权限页
+      const businessCode =
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null &&
+        typeof (exceptionResponse as { code?: unknown }).code === 'string'
+          ? (exceptionResponse as { code: string; message?: unknown })
+          : null;
+
       errorResponse = {
         error: {
-          code: HTTP_STATUS_TO_RESPONSE_CODE_MAP[httpStatus],
-          message: typeof exceptionResponse === 'string' ? exceptionResponse : exception.message,
+          code: businessCode?.code ?? HTTP_STATUS_TO_RESPONSE_CODE_MAP[httpStatus],
+          message:
+            typeof exceptionResponse === 'string'
+              ? exceptionResponse
+              : typeof businessCode?.message === 'string'
+                ? businessCode.message
+                : exception.message,
           details: typeof exceptionResponse === 'object' ? JSON.stringify(exceptionResponse) : undefined,
           timestamp: Date.now(),
         },

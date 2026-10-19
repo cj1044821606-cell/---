@@ -16,3 +16,13 @@ export function accessBlock(identity: Pick<Identity, "accessState">): AccessBloc
   if (identity.accessState === "unverified") return "unverified";
   return null;
 }
+
+export type AccessErrorCode = "NOT_IN_DIVISION" | "DEPARTMENT_UNAVAILABLE";
+
+/** 从接口错误（GlobalExceptionFilter 格式 { error: { code } }）中识别访问权限类错误 */
+export function accessErrorCode(status: number | undefined, data: unknown): AccessErrorCode | null {
+  const code = (data as { error?: { code?: unknown } } | undefined)?.error?.code;
+  if (status === 403 && code === "NOT_IN_DIVISION") return code;
+  if (status === 503 && code === "DEPARTMENT_UNAVAILABLE") return code;
+  return null;
+}

@@ -1,4 +1,4 @@
-import { accessBlock, shouldAutoShowAgentTutorial } from "@shared/access";
+import { accessBlock, accessErrorCode, shouldAutoShowAgentTutorial } from "@shared/access";
 
 describe("shouldAutoShowAgentTutorial", () => {
   it("能上传且未看过时自动弹出", () => {
@@ -24,5 +24,17 @@ describe("accessBlock", () => {
   });
   it("unverified 显示稍后重试", () => {
     expect(accessBlock({ accessState: "unverified" })).toBe("unverified");
+  });
+});
+
+describe("accessErrorCode", () => {
+  it("从过滤器格式的响应体读出业务码", () => {
+    expect(accessErrorCode(403, { error: { code: "NOT_IN_DIVISION" } })).toBe("NOT_IN_DIVISION");
+    expect(accessErrorCode(503, { error: { code: "DEPARTMENT_UNAVAILABLE" } })).toBe("DEPARTMENT_UNAVAILABLE");
+  });
+  it("状态码不匹配或普通错误返回 null", () => {
+    expect(accessErrorCode(500, { error: { code: "NOT_IN_DIVISION" } })).toBeNull();
+    expect(accessErrorCode(403, { error: { code: "FORBIDDEN" } })).toBeNull();
+    expect(accessErrorCode(403, undefined)).toBeNull();
   });
 });
