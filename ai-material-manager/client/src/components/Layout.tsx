@@ -41,7 +41,11 @@ import {
 import { Image } from "@client/src/components/ui/image";
 import { useI18n } from "@client/src/hooks/use-i18n";
 import { useIdentity } from "@client/src/hooks/use-identity";
-import { accessBlock, shouldAutoShowAgentTutorial } from "@shared/access";
+import {
+  accessBlock,
+  canUseAgent as canUseAgentFor,
+  shouldAutoShowAgentTutorial,
+} from "@shared/access";
 import NoAccessPage from "@client/src/pages/NoAccessPage";
 import { useInbox } from "@client/src/inbox/inbox-provider";
 import { useSystemSettings } from "@client/src/hooks/use-system-settings";
@@ -96,7 +100,7 @@ const Layout: React.FC = () => {
   const tt = (key: string): string =>
     TUTORIAL_I18N[key]?.[language] ?? t(key);
   // 有访问权限的人都能手动打开 AI 助手接入；教程只对能上传的人自动弹出
-  const canUseAgent: boolean = identity?.canAccess === true;
+  const canUseAgent: boolean = identity !== null && canUseAgentFor(identity);
   useScrollRestoration();
 
   useEffect(() => {

@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Request, Response } from "express";
 import { IdentityService } from "@server/modules/identity/identity.service";
+import { canUseAgent } from "@shared/access";
 import { AgentTokenService } from "./agent-token.service";
 import { bearerToken } from "./bearer";
 import { McpServerFactory } from "./mcp-server.factory";
@@ -48,9 +49,9 @@ export class McpController {
     }
 
     // 令牌有效期内离开事业部的人，下一次请求就要被拒，而不是等令牌过期
-    const { accessState } = await this.identity.resolve(principal.userId);
-    if (accessState !== "granted") {
-      if (accessState === "unverified") {
+    const identity = await this.identity.resolve(principal.userId);
+    if (!canUseAgent(identity)) {
+      if (identity.accessState === "unverified") {
         jsonRpcError(res, 503, "暂时无法验证部门，请稍后重试");
       } else {
         jsonRpcError(res, 403, "本系统仅对储能事业部开放，你的账号已无访问权限");

@@ -1,3 +1,4 @@
+import { canUseAgent } from '@shared/access';
 import {
   BadRequestException,
   ForbiddenException,
@@ -50,7 +51,7 @@ export class PeopleService {
     pageToken?: string,
   ): Promise<PeopleOptionsResult> {
     if (query?.trim()) {
-      if (!(await this.identity.resolve(userId)).canAccess)
+      if (!canUseAgent(await this.identity.resolve(userId)))
         throw new ForbiddenException('仅储能事业部成员可搜索组织成员');
       if (query.length > 100 || (pageToken?.length ?? 0) > 2000)
         throw new BadRequestException('搜索参数过长');

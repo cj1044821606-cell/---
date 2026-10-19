@@ -18,9 +18,22 @@ function controllerFor(identity: Record<string, unknown>) {
 
 describe("AgentController.createToken", () => {
   it("事业部成员可签发令牌", async () => {
-    const { controller, tokens, req } = controllerFor({ isVisitor: true, canAccess: true });
+    const { controller, tokens, req } = controllerFor({
+      isVisitor: true,
+      canAccess: true,
+      isDivisionMember: true,
+    });
     await expect(controller.createToken(req, { label: "x" } as any)).resolves.toEqual({ token: "amm_x" });
     expect(tokens.issue).toHaveBeenCalled();
+  });
+
+  it("部门未配置时的普通访客不能签发令牌", async () => {
+    const { controller, req } = controllerFor({
+      isVisitor: true,
+      canAccess: true,
+      isDivisionMember: false,
+    });
+    await expect(controller.createToken(req, {} as any)).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it("无访问权限者不能签发令牌", async () => {

@@ -1,5 +1,15 @@
 import type { Identity } from "./identity";
 
+/**
+ * AI 助手接入、令牌签发、组织成员搜索：人员表中的人，或已确认的储能事业部成员。
+ * 部门未配置时 canAccess 对普通访客也为 true（沿用旧口径），这里不能只看 canAccess。
+ */
+export function canUseAgent(
+  identity: Pick<Identity, "canAccess" | "isVisitor" | "isDivisionMember">,
+): boolean {
+  return identity.canAccess && (!identity.isVisitor || identity.isDivisionMember);
+}
+
 /** MCP 接入教程只对能上传的人自动弹出；其他人可在“更多”里手动打开 */
 export function shouldAutoShowAgentTutorial(
   identity: Pick<Identity, "canAccess" | "isUploadRole">,

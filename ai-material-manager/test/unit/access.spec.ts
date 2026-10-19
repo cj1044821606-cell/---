@@ -1,4 +1,4 @@
-import { accessBlock, accessErrorCode, shouldAutoShowAgentTutorial } from "@shared/access";
+import { accessBlock, accessErrorCode, canUseAgent, shouldAutoShowAgentTutorial } from "@shared/access";
 
 describe("shouldAutoShowAgentTutorial", () => {
   it("能上传且未看过时自动弹出", () => {
@@ -36,5 +36,20 @@ describe("accessErrorCode", () => {
     expect(accessErrorCode(500, { error: { code: "NOT_IN_DIVISION" } })).toBeNull();
     expect(accessErrorCode(403, { error: { code: "FORBIDDEN" } })).toBeNull();
     expect(accessErrorCode(403, undefined)).toBeNull();
+  });
+});
+
+describe("canUseAgent", () => {
+  it("人员表中的人可以使用", () => {
+    expect(canUseAgent({ canAccess: true, isVisitor: false, isDivisionMember: false })).toBe(true);
+  });
+  it("已确认的事业部成员可以使用", () => {
+    expect(canUseAgent({ canAccess: true, isVisitor: true, isDivisionMember: true })).toBe(true);
+  });
+  it("部门未配置时的普通访客不能使用", () => {
+    expect(canUseAgent({ canAccess: true, isVisitor: true, isDivisionMember: false })).toBe(false);
+  });
+  it("无访问权限不能使用", () => {
+    expect(canUseAgent({ canAccess: false, isVisitor: false, isDivisionMember: false })).toBe(false);
   });
 });
