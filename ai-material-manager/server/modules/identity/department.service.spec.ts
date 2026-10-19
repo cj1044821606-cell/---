@@ -118,13 +118,12 @@ describe("DepartmentService.check", () => {
     expect(userGet).not.toHaveBeenCalled();
   });
 
-  it("接口权限不足返回 failed 且不缓存", async () => {
+  it("接口权限不足返回 failed，且不写入 30 分钟的部门链缓存", async () => {
     const userGet = jest.fn(async () => ({ code: 99991672, msg: "no permission" }));
     const { service } = makeService({ userGet });
     await expect(service.check("ou_a")).resolves.toMatchObject({ state: "failed" });
-    await expect(service.check("ou_a")).resolves.toMatchObject({ state: "failed" });
-    // 每次 check 最多重试 1 次：两次 check 共 4 次请求，证明失败没有被缓存
-    expect(userGet).toHaveBeenCalledTimes(4);
+    // 失败只进 60 秒短缓存；部门链缓存为空，恢复后下一次即可重新查询
+    expect(await (service as any).cache.get("dept:user:v1:ou_a")).toBeNull();
   });
 
   it("偶发失败重试一次", async () => {
@@ -166,6 +165,39 @@ describe("DepartmentService.check", () => {
     (service as any).feishu.client.contact.v3.department.parent = parent;
     await expect(service.check("ou_a")).resolves.toMatchObject({ inDivision: true });
     expect(parent.mock.calls[1][0].params.page_token).toBe("p2");
+  });
+});
+
+describe("DepartmentService 并发与失败短缓存", () => {
+  it("同一用户并发查询只请求一次通讯录", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const userGet = jest.fn(async () => {
+      await gate;
+      return { code: 0, data: { user: { department_ids: ["od-ess"] } } };
+    });
+    const { service } = makeService({ userGet });
+    const pending = Promise.all([service.check("ou_a"), service.check("ou_a"), service.check("ou_a")]);
+    release();
+    const results = await pending;
+    expect(results.every((r) => r.state === "ok" && r.inDivision)).toBe(true);
+    expect(userGet).toHaveBeenCalledTimes(1);
+  });
+
+  it("失败结果短暂缓存 60 秒，期间不重复打通讯录", async () => {
+    const userGet = jest.fn(async () => ({ code: 99991672, msg: "no permission" }));
+    const { service } = makeService({ userGet });
+    const now = jest.spyOn(Date, "now").mockReturnValue(1_000_000);
+    try {
+      await expect(service.check("ou_a")).resolves.toMatchObject({ state: "failed" });
+      await expect(service.check("ou_a")).resolves.toMatchObject({ state: "failed" });
+      expect(userGet).toHaveBeenCalledTimes(2); // 首次请求 + 1 次重试
+      now.mockReturnValue(1_000_000 + 61_000);
+      await expect(service.check("ou_a")).resolves.toMatchObject({ state: "failed" });
+      expect(userGet).toHaveBeenCalledTimes(4);
+    } finally {
+      now.mockRestore();
+    }
   });
 });
 

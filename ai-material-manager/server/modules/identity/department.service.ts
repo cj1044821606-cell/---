@@ -9,6 +9,8 @@ export const UPLOAD_DEPARTMENT_KEY = "upload_department_ids";
 
 const USER_DEPARTMENTS_TTL_MS = 30 * 60 * 1000;
 const DEPARTMENT_PARENTS_TTL_MS = 6 * 60 * 60 * 1000;
+/** 失败结果的短缓存：避免权限错误或限流时每个请求都重复打通讯录 */
+const FAILED_CHECK_TTL_MS = 60 * 1000;
 
 export type DepartmentCheck =
   | { state: "ok"; inDivision: boolean; inMarketing: boolean }
@@ -34,6 +36,9 @@ export function parseDepartmentIds(raw: string | null | undefined): string[] {
 @Injectable()
 export class DepartmentService {
   private readonly logger = new Logger(DepartmentService.name);
+  /** 同一用户的并发查询合并为一次（物料库首屏会并发几十个受保护请求） */
+  private readonly inFlight = new Map<string, Promise<DepartmentCheck>>();
+  private readonly recentFailures = new Map<string, { until: number; result: DepartmentCheck }>();
 
   constructor(
     private readonly base: FeishuBaseGateway,
@@ -52,6 +57,24 @@ export class DepartmentService {
   }
 
   async check(openId: string): Promise<DepartmentCheck> {
+    const failure = this.recentFailures.get(openId);
+    if (failure && failure.until > Date.now()) return failure.result;
+
+    const pending = this.inFlight.get(openId);
+    if (pending) return pending;
+
+    const run = this.runCheck(openId).finally(() => this.inFlight.delete(openId));
+    this.inFlight.set(openId, run);
+    const result = await run;
+    if (result.state === "failed") {
+      this.recentFailures.set(openId, { until: Date.now() + FAILED_CHECK_TTL_MS, result });
+    } else {
+      this.recentFailures.delete(openId);
+    }
+    return result;
+  }
+
+  private async runCheck(openId: string): Promise<DepartmentCheck> {
     const { accessIds, uploadIds } = await this.configStatus();
     if (accessIds.length === 0) return { state: "unconfigured" };
 
