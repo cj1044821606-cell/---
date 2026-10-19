@@ -10,6 +10,13 @@ export function canUseAgent(
   return identity.canAccess && (!identity.isVisitor || identity.isDivisionMember);
 }
 
+/** “未找到你的市场配置”横幅只给普通访客；事业部成员的访问是预期内的完整权限 */
+export function showVisitorBanner(
+  identity: Pick<Identity, "isVisitor" | "isDivisionMember">,
+): boolean {
+  return identity.isVisitor && !identity.isDivisionMember;
+}
+
 /** MCP 接入教程只对能上传的人自动弹出；其他人可在“更多”里手动打开 */
 export function shouldAutoShowAgentTutorial(
   identity: Pick<Identity, "canAccess" | "isUploadRole">,

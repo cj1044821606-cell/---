@@ -1,4 +1,4 @@
-import { accessBlock, accessErrorCode, canUseAgent, shouldAutoShowAgentTutorial } from "@shared/access";
+import { accessBlock, accessErrorCode, canUseAgent, shouldAutoShowAgentTutorial, showVisitorBanner } from "@shared/access";
 
 describe("shouldAutoShowAgentTutorial", () => {
   it("能上传且未看过时自动弹出", () => {
@@ -51,5 +51,17 @@ describe("canUseAgent", () => {
   });
   it("无访问权限不能使用", () => {
     expect(canUseAgent({ canAccess: false, isVisitor: false, isDivisionMember: false })).toBe(false);
+  });
+});
+
+describe("showVisitorBanner", () => {
+  it("普通访客显示“未找到市场配置”横幅", () => {
+    expect(showVisitorBanner({ isVisitor: true, isDivisionMember: false })).toBe(true);
+  });
+  it("事业部成员不显示", () => {
+    expect(showVisitorBanner({ isVisitor: true, isDivisionMember: true })).toBe(false);
+  });
+  it("人员表中的人不显示", () => {
+    expect(showVisitorBanner({ isVisitor: false, isDivisionMember: false })).toBe(false);
   });
 });

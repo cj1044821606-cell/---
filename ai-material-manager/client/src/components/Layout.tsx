@@ -45,6 +45,7 @@ import {
   accessBlock,
   canUseAgent as canUseAgentFor,
   shouldAutoShowAgentTutorial,
+  showVisitorBanner,
 } from "@shared/access";
 import NoAccessPage from "@client/src/pages/NoAccessPage";
 import { useInbox } from "@client/src/inbox/inbox-provider";
@@ -318,7 +319,7 @@ const Layout: React.FC = () => {
         </div>
       </header>
 
-      {identity?.isVisitor ? (
+      {identity && showVisitorBanner(identity) ? (
         <div className="sticky top-0 z-30 border-b border-warning/30 bg-warning-soft px-4 py-2 text-center text-sm font-medium text-warning-text md:top-14">
           {t("identity.visitorBanner")}
         </div>
