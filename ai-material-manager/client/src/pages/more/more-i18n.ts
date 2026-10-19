@@ -105,6 +105,10 @@ export const MORE_I18N: Record<string, { zh: string; en: string }> = {
     zh: "部门权限未配置，目前只按人员表放行",
     en: "Department access not configured — only the people table is used",
   },
+  "more.ops.dept.mismatch": {
+    zh: "你本人不在配置的储能事业部内，请核对 access_department_ids 是否填错",
+    en: "You are not inside the configured division — check access_department_ids",
+  },
   "more.ops.dept.failed": {
     zh: "部门信息读取失败，请检查飞书通讯录权限",
     en: "Failed to read departments — check the Feishu contact permissions",

@@ -68,7 +68,8 @@ export class OpsService {
     const counts = { accessCount: accessIds.length, uploadCount: uploadIds.length };
     if (accessIds.length === 0) return { status: "unconfigured", ...counts };
     const check = await this.departments.check(userId);
-    return { status: check.state === "ok" ? "ok" : "failed", ...counts };
+    if (check.state !== "ok") return { status: "failed", ...counts };
+    return { status: check.inDivision ? "ok" : "mismatch", ...counts };
   }
 
   private async findStuck(): Promise<OpsStuckItem[]> {

@@ -32,6 +32,16 @@ describe("OpsService.departmentAlert", () => {
     });
   });
 
+  it("维护者本人不在配置的事业部内时告警（部门 ID 可能填错）", async () => {
+    const ops = opsFor(
+      { accessIds: ["od-typo"], uploadIds: ["od-mkt"] },
+      { state: "ok", inDivision: false, inMarketing: false },
+    );
+    await expect(ops.getOps("ou_m")).resolves.toMatchObject({
+      departmentAlert: { status: "mismatch" },
+    });
+  });
+
   it("正常时返回 ok 与配置数量", async () => {
     const ops = opsFor(
       { accessIds: ["od-ess", "od-ess2"], uploadIds: ["od-mkt"] },

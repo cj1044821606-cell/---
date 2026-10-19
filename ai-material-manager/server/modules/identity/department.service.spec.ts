@@ -168,6 +168,13 @@ describe("DepartmentService.check", () => {
   });
 });
 
+describe("DepartmentService 空部门", () => {
+  it("通讯录返回空部门视为读取失败（多半是缺字段权限）", async () => {
+    const { service } = makeService({ userDepartments: { ou_a: [] } });
+    await expect(service.check("ou_a")).resolves.toMatchObject({ state: "failed" });
+  });
+});
+
 describe("DepartmentService 并发与失败短缓存", () => {
   it("同一用户并发查询只请求一次通讯录", async () => {
     let release!: () => void;

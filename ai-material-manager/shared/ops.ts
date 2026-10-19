@@ -19,7 +19,8 @@ export interface OpsQrAlert {
 }
 
 export interface OpsDepartmentAlert {
-  status: "ok" | "unconfigured" | "failed";
+  /** mismatch：部门可读取，但维护者本人不在配置的事业部内，多半是部门 ID 填错 */
+  status: "ok" | "unconfigured" | "failed" | "mismatch";
   accessCount: number;
   uploadCount: number;
 }

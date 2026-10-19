@@ -208,7 +208,7 @@ export const MoreOpsView: React.FC = () => {
           {data.departmentAlert && data.departmentAlert.status !== "ok" ? (
             <div
               className={`md:col-span-2 flex flex-wrap items-center gap-2 rounded-md px-3 py-2 text-sm ${
-                data.departmentAlert.status === "failed"
+                data.departmentAlert.status !== "unconfigured"
                   ? "bg-destructive-soft text-destructive"
                   : "bg-warning-soft text-warning-text"
               }`}

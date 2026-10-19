@@ -122,7 +122,12 @@ export class DepartmentService {
     if (response.code !== 0) {
       throw new Error(`contact.user.get code=${response.code} ${response.msg ?? ""}`.trim());
     }
-    return response.data?.user?.department_ids ?? [];
+    const departmentIds = response.data?.user?.department_ids ?? [];
+    // 每个真实员工至少属于一个部门；拿到空值几乎都是缺少“获取用户所属部门”字段权限
+    if (departmentIds.length === 0) {
+      throw new Error("contact.user.get 返回空部门，请检查 contact:user.department:readonly 权限");
+    }
+    return departmentIds;
   }
 
   private async parents(departmentId: string): Promise<string[]> {
