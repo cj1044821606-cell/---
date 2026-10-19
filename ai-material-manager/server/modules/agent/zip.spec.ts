@@ -49,12 +49,15 @@ describe("buildUploadCommands", () => {
       chunkSize: 32,
       chunkCount: 1,
     });
-    expect(commands.bash).toBe(
+    expect(commands.bash).toContain(
       "curl -fsS -T '/Users/al'\\''an/My File.pdf' 'https://h/api/agent/uploads/t.s'",
     );
-    expect(commands.powershell).toBe(
+    expect(commands.bash).toContain("for t in $(seq 1 3)");
+    expect(commands.bash).not.toContain("--retry-all-errors");
+    expect(commands.powershell).toContain(
       "curl.exe -fsS -T '/Users/al''an/My File.pdf' 'https://h/api/agent/uploads/t.s'",
     );
+    expect(commands.powershell).toContain("$LASTEXITCODE -eq 0");
   });
 
   it("loops over chunks with X-Chunk-Index for large files", () => {

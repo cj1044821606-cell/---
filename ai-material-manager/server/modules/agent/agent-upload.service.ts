@@ -5,10 +5,14 @@ import {
   UnsupportedMediaTypeException,
 } from "@nestjs/common";
 import type { Request } from "express";
+import { createHash } from "node:crypto";
+import { createReadStream, promises as fs } from "node:fs";
 import type { PoolUploadFileProgressResponse } from "@shared/api.interface";
 import { FeishuUploadService } from "@server/modules/feishu/feishu-upload.service";
 import { UploadIngressService } from "@server/modules/pool/upload-ingress.service";
 import { AgentTicketService, type UploadTicket } from "./agent-ticket.service";
+
+const MAX_REMEMBERED_HASHES = 2000;
 
 export type AgentUploadResult =
   | {
@@ -32,6 +36,8 @@ export class AgentUploadService {
   private readonly logger = new Logger(AgentUploadService.name);
   /** 最后几片并发到达时只允许组装一次 */
   private readonly assembling = new Set<string>();
+  /** 服务端对收齐文件计算的 SHA-256，供 AI 助手与本机文件比对 */
+  private readonly receivedHashes = new Map<string, string>();
 
   constructor(
     private readonly tickets: AgentTicketService,
@@ -99,6 +105,24 @@ export class AgentUploadService {
       }
     }
 
+    // 字节数对上不代表内容对：转存飞书前按本机 SHA-256 校验，避免把损坏/错拿的文件发布出去
+    const sha256 = await sha256OfFile(filePath);
+    if (ticket.sha256 && ticket.sha256 !== sha256) {
+      await fs.unlink(filePath).catch(() => undefined);
+      await this.ingress.finishStaging(taskId);
+      this.logger.warn(
+        `Agent upload hash mismatch: taskId=${taskId} expected=${ticket.sha256} actual=${sha256}`,
+      );
+      throw new BadRequestException(
+        "文件内容校验失败：服务器收到的内容与本机 SHA-256 不一致，请重新调用 prepare_upload 后再传",
+      );
+    }
+    this.receivedHashes.set(taskId, sha256);
+    if (this.receivedHashes.size > MAX_REMEMBERED_HASHES) {
+      const oldest = this.receivedHashes.keys().next().value;
+      if (oldest) this.receivedHashes.delete(oldest);
+    }
+
     await this.ingress.finishStaging(taskId);
     this.startFeishuUpload(ticket, filePath, fileSize);
     return this.accepted(taskId);
@@ -107,8 +131,11 @@ export class AgentUploadService {
   status(
     userId: string,
     taskId: string,
-  ): PoolUploadFileProgressResponse | undefined {
-    return this.uploads.getProgress(taskId, userId);
+  ): (PoolUploadFileProgressResponse & { sha256?: string }) | undefined {
+    const progress = this.uploads.getProgress(taskId, userId);
+    if (!progress) return undefined;
+    const sha256 = this.receivedHashes.get(taskId);
+    return sha256 ? { ...progress, sha256 } : progress;
   }
 
   private startFeishuUpload(
@@ -155,6 +182,16 @@ export class AgentUploadService {
       );
     }
   }
+}
+
+function sha256OfFile(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = createHash("sha256");
+    createReadStream(filePath)
+      .on("data", (chunk) => hash.update(chunk))
+      .on("error", reject)
+      .on("end", () => resolve(hash.digest("hex")));
+  });
 }
 
 function parseChunkIndex(value: string | undefined): number | null {

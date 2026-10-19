@@ -1,6 +1,6 @@
 import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -117,6 +117,33 @@ describe("AgentUploadService", () => {
     expect(feishu.uploadFileFromPath).toHaveBeenCalledTimes(1);
     await feishu.uploadFileFromPath.mock.results[0]?.value;
     expect(assembled[0]?.equals(data)).toBe(true);
+  });
+
+  it("verifies assembled content against the declared SHA-256", async () => {
+    const data = randomBytes(Math.floor(1.5 * CHUNK));
+    const sha = createHash("sha256").update(data).digest("hex");
+    const good = tickets.issueUpload("ou_alice", "ok.psd", data.length, sha.toUpperCase());
+    expect(good.upload.sha256).toBe(sha);
+    await service.receive(request(data.subarray(0, CHUNK)), good.ticket, "0");
+    await expect(
+      service.receive(request(data.subarray(CHUNK)), good.ticket, "1"),
+    ).resolves.toMatchObject({ status: "accepted" });
+    feishu.getProgress.mockReturnValue({ status: "done", fileName: "ok.psd", totalSize: data.length, uploadedBlocks: 1, totalBlocks: 1 });
+    expect(service.status("ou_alice", good.upload.uploadId)).toMatchObject({ sha256: sha });
+
+    // 同样的字节数、不同的内容：必须在转存飞书前拒收，且不留下临时文件
+    const tampered = Buffer.from(data);
+    tampered[10] = tampered[10]! ^ 0xff;
+    const bad = tickets.issueUpload("ou_alice", "bad.psd", data.length, sha);
+    await service.receive(request(tampered.subarray(0, CHUNK)), bad.ticket, "0");
+    await expect(
+      service.receive(request(tampered.subarray(CHUNK)), bad.ticket, "1"),
+    ).rejects.toThrow("SHA-256");
+    expect(feishu.uploadFileFromPath).toHaveBeenCalledTimes(1);
+    const leftovers = (await fs.readdir(path.join(dir, "incoming"))).filter((name) =>
+      name.includes(bad.upload.uploadId),
+    );
+    expect(leftovers).toEqual([]);
   });
 
   it("requires X-Chunk-Index for files larger than one chunk", async () => {

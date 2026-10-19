@@ -468,7 +468,11 @@ const MaterialDetailPage: React.FC = () => {
                   material={resp.material}
                   roles={identity?.roles ?? []}
                 />
-                <VersionTimeline versions={resp.versions} />
+                <VersionTimeline
+                  materialId={resp.material.baseRecordId}
+                  versions={resp.versions}
+                  canDownloadHistory={resp.canDownloadHistory}
+                />
               </div>
               <div className="space-y-5 lg:sticky lg:top-[76px]">
                 <MaterialIdentity

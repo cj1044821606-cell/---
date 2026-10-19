@@ -19,6 +19,8 @@ export interface UploadTicket {
   fileSize: number;
   uploadId: string;
   expiresAt: number;
+  /** 本机计算的 SHA-256（小写十六进制）；提供时服务端收齐后逐字节校验 */
+  sha256?: string;
 }
 
 interface UploadTicketPayload {
@@ -27,6 +29,15 @@ interface UploadTicketPayload {
   sz: number;
   id: string;
   exp: number;
+  h?: string;
+}
+
+const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
+
+export function normalizeSha256(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const normalized = value.trim().toLowerCase();
+  return SHA256_PATTERN.test(normalized) ? normalized : undefined;
 }
 
 interface DownloadTicketPayload {
@@ -59,13 +70,16 @@ export class AgentTicketService {
     userId: string,
     fileName: string,
     fileSize: number,
+    sha256?: string,
   ): { ticket: string; upload: UploadTicket } {
+    const hash = normalizeSha256(sha256);
     const upload: UploadTicket = {
       userId,
       fileName: path.basename(fileName),
       fileSize,
       uploadId: `agent_${Date.now()}_${randomBytes(12).toString("hex")}`,
       expiresAt: Date.now() + UPLOAD_TICKET_TTL_MS,
+      ...(hash ? { sha256: hash } : {}),
     };
     const ticket = signPayload(this.secret, UPLOAD_PURPOSE, {
       uid: upload.userId,
@@ -73,6 +87,7 @@ export class AgentTicketService {
       sz: upload.fileSize,
       id: upload.uploadId,
       exp: upload.expiresAt,
+      ...(hash ? { h: hash } : {}),
     } satisfies UploadTicketPayload);
     return { ticket, upload };
   }
@@ -101,6 +116,7 @@ export class AgentTicketService {
       fileSize: payload.sz,
       uploadId: payload.id,
       expiresAt: payload.exp,
+      ...(normalizeSha256(payload.h) ? { sha256: normalizeSha256(payload.h) } : {}),
     };
   }
 

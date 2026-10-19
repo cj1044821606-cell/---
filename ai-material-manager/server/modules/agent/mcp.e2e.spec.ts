@@ -165,6 +165,7 @@ describe("MCP endpoint (HTTP round trip)", () => {
         "list_my_tasks",
         "plan_material",
         "prepare_upload",
+        "prepare_uploads",
         "publish_material",
         "search_materials",
         "whoami",
@@ -199,6 +200,68 @@ describe("MCP endpoint (HTTP round trip)", () => {
     expect(prepared.commands.powershell).toContain(
       "https://materials.example.com/api/agent/uploads/",
     );
+    await client.close();
+  });
+
+  it("prepares all files of a material as one script with verified hashes", async () => {
+    const client = await connect(token);
+    const sha = "a".repeat(64);
+    const prepared = JSON.parse(
+      text(
+        await client.callTool({
+          name: "prepare_uploads",
+          arguments: {
+            standardName: "itel-Logo-V3.0",
+            files: [
+              { localPath: "/Users/alan/logo rgb.pdf", fileSize: 100, kind: "M", sha256: sha, variant: "RGB" },
+              { localPath: "/Users/alan/logo cmyk.pdf", fileSize: 120, kind: "M", sha256: sha.toUpperCase(), variant: "CMYK" },
+              { localPath: "/Users/alan/logo.ai", fileSize: 300, kind: "L" },
+            ],
+          },
+        }),
+      ),
+    );
+    expect(prepared.files.map((f: { storedAs: string }) => f.storedAs)).toEqual([
+      "itel-Logo-V3.0-RGB-M.pdf",
+      "itel-Logo-V3.0-CMYK-M.pdf",
+      "itel-Logo-V3.0-L.ai",
+    ]);
+    expect(prepared.files.map((f: { hashVerified: boolean }) => f.hashVerified)).toEqual([true, true, false]);
+    expect(prepared.taskIds.M).toHaveLength(2);
+    expect(prepared.taskIds.L).toHaveLength(1);
+    expect(prepared.commands.bash).toContain("ALL UPLOADS SENT");
+    expect(prepared.commands.bash.match(/api\/agent\/uploads\//gu)).toHaveLength(3);
+
+    const clash = await client.callTool({
+      name: "prepare_uploads",
+      arguments: {
+        standardName: "itel-Logo-V3.0",
+        files: [
+          { localPath: "/a.pdf", fileSize: 1, kind: "M" },
+          { localPath: "/b.pdf", fileSize: 1, kind: "M" },
+        ],
+      },
+    });
+    expect((clash as TextResult).isError).toBe(true);
+    expect(text(clash)).toContain("variant");
+    await client.close();
+  });
+
+  it("reports upload status with the server hash and an allDone flag", async () => {
+    const client = await connect(token);
+    const done = JSON.parse(
+      text(await client.callTool({ name: "get_upload_status", arguments: { taskIds: ["done_task"], waitSeconds: 5 } })),
+    );
+    expect(done.allDone).toBe(true);
+    expect(done.items[0]).toMatchObject({ status: "done", sha256: null });
+
+    const started = Date.now();
+    const pending = JSON.parse(
+      text(await client.callTool({ name: "get_upload_status", arguments: { taskIds: ["done_task", "unknown"], waitSeconds: 0 } })),
+    );
+    expect(Date.now() - started).toBeLessThan(1500);
+    expect(pending.allDone).toBe(false);
+    expect(pending.items[1].status).toBe("receiving");
     await client.close();
   });
 
