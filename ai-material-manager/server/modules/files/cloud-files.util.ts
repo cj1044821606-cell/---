@@ -24,7 +24,13 @@ export function parseCloudFiles(value: unknown): CloudFileRef[] {
   };
   const visit = (item: unknown): void => {
     if (typeof item === 'string') {
-      item.split('\n').forEach((line) => add(line.trim()));
+      item.split('\n').forEach((line) => {
+        const markdown = /^\[([^\]]+)\]\((https:\/\/[^\s)]+)\)$/.exec(
+          line.trim(),
+        );
+        if (markdown) add(markdown[2], markdown[1]);
+        else add(line.trim());
+      });
       return;
     }
     if (!item || typeof item !== 'object' || seen.has(item)) return;
@@ -37,6 +43,7 @@ export function parseCloudFiles(value: unknown): CloudFileRef[] {
     const link = segment.link ?? segment.url;
     if (typeof link === 'string')
       add(link, segment.text ?? segment.name, segment.token);
+    else if (typeof segment.text === 'string') visit(segment.text);
     Object.values(segment)
       .filter((child) => typeof child === 'object')
       .forEach(visit);

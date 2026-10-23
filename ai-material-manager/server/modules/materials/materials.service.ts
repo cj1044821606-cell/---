@@ -43,6 +43,7 @@ import {
 import { FilesService } from "@server/modules/files/files.service";
 import { ThumbnailService, selectPreviewSource } from "@server/modules/files/thumbnail.service";
 import { FeishuBaseGateway } from "@server/modules/feishu/feishu-base.gateway";
+import { DriveArchiveService } from "@server/modules/feishu/drive-archive.service";
 import { mergeCloudChannels } from "@server/modules/files/cloud-files.util";
 import {
   canDownloadVersionHistory,
@@ -172,6 +173,7 @@ export class MaterialsService {
     private readonly bitableWriteService: BitableWriteService,
     private readonly filesService: FilesService,
     private readonly thumbnails: ThumbnailService,
+    private readonly archive: DriveArchiveService,
   ) {}
 
   async getMaterialDetail(
@@ -553,6 +555,8 @@ export class MaterialsService {
             materialName: row.materialName ?? "",
             materialType,
             currentVersion: row.currentVersion ?? "",
+            previewUrl: this.filesService.makeMediaUrl(row.previewFileS?.[0] ?? row.coverImage?.[0], userId),
+            thumbUrl: this.thumbnails.makeThumbUrl(this.primaryImage(row), userId),
           };
           kit.items.push(item);
         }
@@ -846,10 +850,23 @@ export class MaterialsService {
       );
     const versionNumber: string = versionRows[0]?.versionNumber ?? "";
 
+    const archiveSources = { M: material.currentValidAttachment ?? [], L: material.sourceFileL ?? [], S: sAttachments };
+    const directIndex = { M: 0, L: 0, S: 0 };
+    const archiveRefs = { M: cloudLinks.m, L: cloudLinks.l, S: cloudLinks.s };
+    for (const file of files) {
+      const locator = file.delivery === 'direct' ? [...new Set(archiveSources[file.kind])][directIndex[file.kind]++] : '';
+      const ownCopy = this.archive.copyLink(locator ?? '');
+      if (ownCopy && archiveRefs[file.kind].some((ref) => ref.link === ownCopy)) file.cloudCopyUrl = ownCopy;
+      file.cloudArchiveStatus = file.delivery === 'external' ? 'complete' : this.archive.status(locator ?? '', file.cloudCopyUrl);
+      const destination = this.archive.location(locator ?? '');
+      file.cloudArchivePath = destination?.path;
+      file.cloudArchiveNeedsClassification = destination?.needsClassification;
+    }
+
     return {
       materialId: baseRecordId,
       versionNumber,
-      files,
+      files: files.filter((file) => file.delivery !== 'external' || !files.some((other) => other.delivery === 'direct' && other.cloudCopyUrl === file.url)),
       ...(Object.keys(missing).length > 0 ? { missing } : {}),
     };
   }
@@ -979,7 +996,6 @@ export class MaterialsService {
       tier,
       attachments,
       cloudLinkRefs,
-      isLargeFile,
       files,
       missing,
       missingReason,
@@ -998,11 +1014,6 @@ export class MaterialsService {
     }
     const merged = mergeCloudChannels(direct, cloudLinkRefs).map((file) => ({ ...file, kind: tier }));
     for (const file of merged) {
-      if (isLargeFile && file.cloudCopyUrl) {
-        file.url = file.cloudCopyUrl;
-        file.delivery = "external";
-        delete file.cloudCopyUrl;
-      }
       files.push(file);
     }
     if (merged.length === 0) missing[tier] = missingReason;

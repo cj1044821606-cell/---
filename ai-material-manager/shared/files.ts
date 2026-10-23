@@ -1,7 +1,7 @@
-export type DeliveryMode = "direct" | "external";
+export type DeliveryMode = 'direct' | 'external';
 
 export interface DeliverableFile {
-  kind: "M" | "L" | "S";
+  kind: 'M' | 'L' | 'S';
   fileName: string;
   sizeBytes: number | null;
   mimeType: string | null;
@@ -9,13 +9,16 @@ export interface DeliverableFile {
   url: string;
   previewUrl: string | null;
   cloudCopyUrl?: string;
+  cloudArchiveStatus?: 'complete' | 'pending' | 'retrying' | 'unconfigured';
+  cloudArchivePath?: string;
+  cloudArchiveNeedsClassification?: boolean;
 }
 
 export interface MaterialFilesResponse {
   materialId: string;
   versionNumber: string;
   files: DeliverableFile[];
-  missing?: Partial<Record<"M" | "L" | "S", string>>;
+  missing?: Partial<Record<'M' | 'L' | 'S', string>>;
 }
 
 export interface KitFilesResponse {
@@ -26,7 +29,7 @@ export interface KitFilesResponse {
     materialType: string;
     previewUrl: string | null;
     files: DeliverableFile[];
-    missing: Partial<Record<"M" | "L" | "S", string>>;
+    missing: Partial<Record<'M' | 'L' | 'S', string>>;
   }>;
 }
 

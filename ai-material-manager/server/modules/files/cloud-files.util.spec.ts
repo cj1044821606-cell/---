@@ -2,6 +2,22 @@ import { mergeCloudChannels, parseCloudFiles } from './cloud-files.util';
 import type { DeliverableFile } from '@shared/files';
 
 describe('cloud delivery channels', () => {
+  it('round-trips named archive links written to text fields', () => {
+    expect(
+      parseCloudFiles([
+        {
+          type: 'text',
+          text: '[产品 (英文).pdf](https://transsioner.feishu.cn/file/copy)',
+        },
+      ]),
+    ).toEqual([
+      {
+        fileName: '产品 (英文).pdf',
+        link: 'https://transsioner.feishu.cn/file/copy',
+        fileToken: '',
+      },
+    ]);
+  });
   const file: DeliverableFile = {
     kind: 'M',
     fileName: 'Logo-RGB.pdf',
