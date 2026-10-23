@@ -24,7 +24,20 @@ export function parseCloudFiles(value: unknown): CloudFileRef[] {
   };
   const visit = (item: unknown): void => {
     if (typeof item === 'string') {
-      item.split('\n').forEach((line) => add(line.trim()));
+      const lines = item.split('\n').map((line) => line.trim());
+      lines.forEach((line, index) => {
+        const markdown = /^\[([^\]]+)\]\((https:\/\/[^\s)]+)\)$/.exec(
+          line.trim(),
+        );
+        if (markdown) add(markdown[2], markdown[1]);
+        else
+          add(
+            line,
+            index > 0 && !/^https?:\/\//i.test(lines[index - 1])
+              ? lines[index - 1]
+              : undefined,
+          );
+      });
       return;
     }
     if (!item || typeof item !== 'object' || seen.has(item)) return;
@@ -37,12 +50,20 @@ export function parseCloudFiles(value: unknown): CloudFileRef[] {
     const link = segment.link ?? segment.url;
     if (typeof link === 'string')
       add(link, segment.text ?? segment.name, segment.token);
+    else if (typeof segment.text === 'string') visit(segment.text);
     Object.values(segment)
       .filter((child) => typeof child === 'object')
       .forEach(visit);
   };
   visit(value);
   return [...refs.values()];
+}
+
+/** Bare URL lines remain readable by older deployed clients. */
+export function serializeCloudFiles(refs: CloudFileRef[]): string {
+  return refs
+    .map((ref) => `${ref.fileName.replace(/[\r\n]/g, '_')}\n${ref.link}`)
+    .join('\n');
 }
 
 /** A same-name cloud copy is an alternate channel, not proof of byte identity. */

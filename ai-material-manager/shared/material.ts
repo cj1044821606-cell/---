@@ -93,6 +93,8 @@ export interface MaterialKitItem {
   materialName: string;
   materialType: string;
   currentVersion: string;
+  previewUrl?: string | null;
+  thumbUrl?: string | null;
 }
 
 export interface MaterialKit {

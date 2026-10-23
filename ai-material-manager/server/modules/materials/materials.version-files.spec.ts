@@ -66,6 +66,7 @@ function makeService(roles: string[]) {
     {} as any,
     files as any,
     {} as any,
+    { status: () => 'pending', location: () => undefined, copyLink: () => undefined } as any,
   );
   jest
     .spyOn(service as any, "isMaterialVisible")

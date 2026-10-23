@@ -1,7 +1,39 @@
-import { mergeCloudChannels, parseCloudFiles } from './cloud-files.util';
+import {
+  mergeCloudChannels,
+  parseCloudFiles,
+  serializeCloudFiles,
+} from './cloud-files.util';
 import type { DeliverableFile } from '@shared/files';
 
 describe('cloud delivery channels', () => {
+  it('writes named links with bare URL lines for compatibility with the deployed parser', () => {
+    const refs = [
+      {
+        fileName: 'Product.pdf',
+        link: 'https://transsioner.feishu.cn/file/copy',
+        fileToken: '',
+      },
+    ];
+    const text = serializeCloudFiles(refs);
+    expect(text.split('\n')).toContain(refs[0].link);
+    expect(parseCloudFiles([{ type: 'text', text }])).toEqual(refs);
+  });
+  it('round-trips named archive links written to text fields', () => {
+    expect(
+      parseCloudFiles([
+        {
+          type: 'text',
+          text: '[产品 (英文).pdf](https://transsioner.feishu.cn/file/copy)',
+        },
+      ]),
+    ).toEqual([
+      {
+        fileName: '产品 (英文).pdf',
+        link: 'https://transsioner.feishu.cn/file/copy',
+        fileToken: '',
+      },
+    ]);
+  });
   const file: DeliverableFile = {
     kind: 'M',
     fileName: 'Logo-RGB.pdf',

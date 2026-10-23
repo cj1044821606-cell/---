@@ -1,7 +1,7 @@
 import { MaterialsService } from "./materials.service";
 
 function visible(identity: Record<string, unknown>, material: Record<string, unknown>): boolean {
-  const service = new MaterialsService({} as any, {} as any, {} as any, {} as any, {} as any);
+  const service = new MaterialsService({} as any, {} as any, {} as any, {} as any, {} as any, {} as any);
   return (service as any).isMaterialVisible(material, identity);
 }
 

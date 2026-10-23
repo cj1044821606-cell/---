@@ -384,6 +384,10 @@ export class McpServerFactory {
             fileName: file.fileName,
             sizeBytes: file.sizeBytes,
             mimeType: file.mimeType,
+            cloudCopyUrl: file.cloudCopyUrl ?? null,
+            cloudArchiveStatus: file.cloudArchiveStatus ?? null,
+            cloudArchivePath: file.cloudArchivePath ?? null,
+            cloudArchiveNeedsClassification: file.cloudArchiveNeedsClassification ?? false,
             ...this.downloadLink(file.url, ctx),
           })),
         });

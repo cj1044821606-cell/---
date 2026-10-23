@@ -18,9 +18,13 @@ const COPY = {
     cmyk: 'CMYK · 印刷输出',
     file: '文件',
     cloud: '同名云盘副本',
+    classify: '云盘副本 · 待分类',
     open: '打开云盘文件',
     preview: '查看预览',
     download: '下载',
+    pending: '云盘副本正在归档',
+    retrying: '云盘归档待重试',
+    unconfigured: '云盘归档目录尚未配置',
   },
   en: {
     M: [
@@ -39,9 +43,13 @@ const COPY = {
     cmyk: 'CMYK · Print output',
     file: 'File',
     cloud: 'Same-name cloud copy',
+    classify: 'Cloud copy · needs classification',
     open: 'Open cloud file',
     preview: 'View preview',
     download: 'Download',
+    pending: 'Cloud copy is being archived',
+    retrying: 'Cloud archive will retry',
+    unconfigured: 'Cloud archive folder is not configured',
   },
 };
 
@@ -112,13 +120,21 @@ export default function MaterialFileList({
                       {file.cloudCopyUrl ? (
                         <a
                           href={file.cloudCopyUrl}
+                          title={file.cloudArchivePath}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="mt-1.5 inline-flex min-h-8 items-center gap-1 text-xs text-primary hover:underline"
                         >
                           <ExternalLink className="size-3" />
-                          {copy.cloud}
+                          {file.cloudArchiveNeedsClassification ? copy.classify : copy.cloud}
                         </a>
+                      ) : null}
+                      {!file.cloudCopyUrl &&
+                      file.cloudArchiveStatus &&
+                      file.cloudArchiveStatus !== 'complete' ? (
+                        <p className="mt-1.5 text-xs text-muted-foreground">
+                          {copy[file.cloudArchiveStatus]}
+                        </p>
                       ) : null}
                     </div>
                     <button
