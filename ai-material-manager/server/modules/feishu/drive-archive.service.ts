@@ -11,7 +11,10 @@ import { pipeline } from 'node:stream/promises';
 import * as path from 'node:path';
 import { createHash } from 'node:crypto';
 import { decodeAttachmentLocator } from '@server/common/utils/attachment-locator.util';
-import { parseCloudFiles } from '@server/modules/files/cloud-files.util';
+import {
+  parseCloudFiles,
+  serializeCloudFiles,
+} from '@server/modules/files/cloud-files.util';
 import { FeishuBaseGateway } from './feishu-base.gateway';
 import { FeishuService } from './feishu.service';
 import {
@@ -183,12 +186,7 @@ export class DriveArchiveService implements OnModuleInit, OnModuleDestroy {
                     },
                   ];
               await this.base.updateRecord('main', String(row.baseRecordId), {
-                [field]: links
-                  .map(
-                    (ref) =>
-                      `[${ref.fileName.replace(/[\[\]\n\r]/g, '_')}](${ref.link})`,
-                  )
-                  .join('\n'),
+                [field]: serializeCloudFiles(links),
               });
               const readback = await this.base.rowById<Record<string, unknown>>(
                 'main',

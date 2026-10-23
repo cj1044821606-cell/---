@@ -24,6 +24,9 @@ const {
   decodeAttachmentLocator,
 } = require('../dist/server/common/utils/attachment-locator.util');
 const args = process.argv.slice(2);
+const {
+  serializeCloudFiles,
+} = require('../dist/server/modules/files/cloud-files.util');
 const arg = (key) => args[args.indexOf(key) + 1];
 const id = args.includes('--material') ? arg('--material') : '';
 const tier = args.includes('--kind') ? arg('--kind') : '';
@@ -57,7 +60,8 @@ const scoped = {
   [keys[tier]]: original[keys[tier]],
 };
 const router = new DriveArchiveRouter(feishu);
-if (!(scoped[keys[tier]] ?? []).length) throw new Error('No attachments in the requested tier');
+if (!(scoped[keys[tier]] ?? []).length)
+  throw new Error('No attachments in the requested tier');
 // Dry-run routing cannot create a pending-classification folder.
 if (!args.includes('--apply'))
   feishu.client.drive.file.createFolder = async () => {
@@ -100,7 +104,16 @@ if (args.includes('--apply')) {
   await archive.onModuleInit();
   await archive.reconcile();
   archive.onModuleDestroy();
-  const after = await base.rowById('main', id, { force: true });
+  let after = await base.rowById('main', id, { force: true });
+  if (
+    args.includes('--normalize-links') &&
+    after['cloudFiles' + tier]?.length
+  ) {
+    await base.updateRecord('main', id, {
+      ['云盘链接' + tier]: serializeCloudFiles(after['cloudFiles' + tier]),
+    });
+    after = await base.rowById('main', id, { force: true });
+  }
   console.log(
     JSON.stringify({
       material: id,
